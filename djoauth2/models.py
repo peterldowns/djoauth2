@@ -97,8 +97,11 @@ class AccessToken(models.Model):
     unique=True,
   )
 
+  def get_scope_names_set(self):
+    return {s.name for s in self.scopes.all()}
+
   def has_scope(self, *scope_names):
-    return set(scope_names) <= {s.name for s in self.scopes.all()}
+    return self.get_scope_set() >= set(scope_names)
 
   def is_expired(self):
     return datetime.utcnow() >= (self.date_created +
