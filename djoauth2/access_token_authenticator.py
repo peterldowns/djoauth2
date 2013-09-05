@@ -9,16 +9,28 @@ from djoauth2.exceptions import (AuthenticationException,
                                  InvalidToken)
  
 class AccessTokenAuthenticator(object):
+  #TODO(peter): docstring
+  #TODO(peter): get_access_token()
+  #TODO(peter): get_scope_objects()
+  #TODO(peter): get_scope_names()
+  #TODO(peter): get_client()
+
   def __init__(self, scope_names=None):
+    #TODO(peter): remove state so that we can instantiate
+    # a single AccessTokenAuthenticator per unique group of scopes.
     self.attempted_validation = False
     self.validation_exception = None
     
-    self.scope_names = scope_names or []
-    self.scope_objects = [
-        Scope.objects.get(name=scope_name)
-        for scope_name in self.scope_names]
-    
+    self.scope_names = scope_names or ()
+    for scope_name in scope_names:
+      if not Scope.objects.filter(name=scope_name).exists():
+        raise ValueError('Scope with name "{}" does not exist.'.format(scope_name))
+
+
     def validate(self, request):
+      #TODO(peter): return an excpetion if one is raised instead of
+      #setting it on this object
+      #TODO(peter): should this return an access token?
       try:
         self.attempted_validation = True
         if settings.DJOAUTH_SSL_ONLY and not request.is_secure():
