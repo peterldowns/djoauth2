@@ -2,6 +2,7 @@
 import json
 
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from djoauth2.conf import settings
 from djoauth2.exceptions import AccessTokenException
@@ -15,7 +16,7 @@ from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
 from djoauth2.models import Scope
 
-# ENTRY POINT FOR REQUEST
+@csrf_exempt
 def access_token_endpoint(request):
   """ Generates AccessTokens if provided with sufficient authorization.
 
