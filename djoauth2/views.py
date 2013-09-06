@@ -20,7 +20,7 @@ def access_token_endpoint(request):
     * refresh_token: http://tools.ietf.org/html/rfc6749#section-6
   """
   try:
-    if settings.DJOAUTH_SSL_ONLY and not request.secure():
+    if settings.DJOAUTH2_SSL_ONLY and not request.secure():
       raise InvalidRequest('all requests must use TLS')
 
     # Must include client authentication in requests to the token endpoint.

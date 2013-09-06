@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from django.db import models
 from django.contrib.auth.models import User
 
-from djoauth.helpers import random_hash_generator
-from djoauth.conf import settings
+from djoauth2.helpers import random_hash_generator
+from djoauth2.conf import settings
 
 
 class Client(models.Model):
@@ -15,14 +15,14 @@ class Client(models.Model):
   redirect_uri = models.URLField(null=False, blank=False)
   key = models.CharField(
     db_index=True,
-    default=random_hash_generator(settings.DJOAUTH_CLIENT_KEY_LENGTH),
-    max_length=settings.DJOAUTH_CLIENT_KEY_LENGTH,
+    default=random_hash_generator(settings.DJOAUTH2_CLIENT_KEY_LENGTH),
+    max_length=settings.DJOAUTH2_CLIENT_KEY_LENGTH,
     unique=True,
   )
   secret = models.CharField(
     db_index=True,
-    default=random_hash_generator(settings.DJOAUTH_CLIENT_SECRET_LENGTH),
-    max_length=settings.DJOAUTH_CLIENT_SECRET_LENGTH,
+    default=random_hash_generator(settings.DJOAUTH2_CLIENT_SECRET_LENGTH),
+    max_length=settings.DJOAUTH2_CLIENT_SECRET_LENGTH,
     unique=True,
   )
 
@@ -49,13 +49,13 @@ class AuthorizationCode(models.Model):
   user = models.ForeignKey(User)
   date_created = models.DateTimeField(auto_now_add=True)
   lifetime = models.PositiveIntegerField(
-      default=settings.DJOAUTH_AUTHORIZATION_CODE_LIFETIME)
+      default=settings.DJOAUTH2_AUTHORIZATION_CODE_LIFETIME)
   redirect_uri = models.URLField(null=True, blank=True)
   scopes = models.ManyToManyField(Scope, related_name="authorization_codes")
   value = models.CharField(
     db_index=True,
-    default=random_hash_generator(settings.DJOAUTH_AUTHORIZATION_CODE_LENGTH),
-    max_length=settings.DJOAUTH_AUTHORIZATION_CODE_LENGTH,
+    default=random_hash_generator(settings.DJOAUTH2_AUTHORIZATION_CODE_LENGTH),
+    max_length=settings.DJOAUTH2_AUTHORIZATION_CODE_LENGTH,
     unique=True,
   )
 
@@ -80,14 +80,14 @@ class AccessToken(models.Model):
   client = models.ForeignKey(Client)
   date_created = models.DateTimeField(auto_now_add=True)
   lifetime = models.PositiveIntegerField(
-      default=settings.DJOAUTH_ACCESS_TOKEN_LIFETIME)
+      default=settings.DJOAUTH2_ACCESS_TOKEN_LIFETIME)
   refreshable = models.BooleanField(
-      default=settings.DJOAUTH_ACCESS_TOKENS_REFRESHABLE)
+      default=settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE)
   refresh_token = models.CharField(
     blank=True,
     db_index=True,
-    default=random_hash_generator(settings.DJOAUTH_REFRESH_TOKEN_LENGTH),
-    max_length=settings.DJOAUTH_REFRESH_TOKEN_LENGTH,
+    default=random_hash_generator(settings.DJOAUTH2_REFRESH_TOKEN_LENGTH),
+    max_length=settings.DJOAUTH2_REFRESH_TOKEN_LENGTH,
     null=True,
     unique=True,
   )
@@ -95,8 +95,8 @@ class AccessToken(models.Model):
   user = models.ForeignKey(User)
   value = models.CharField(
     db_index=True,
-    default=random_hash_generator(settings.DJOAUTH_ACCESS_TOKEN_LENGTH),
-    max_length=settings.DJOAUTH_ACCESS_TOKEN_LENGTH,
+    default=random_hash_generator(settings.DJOAUTH2_ACCESS_TOKEN_LENGTH),
+    max_length=settings.DJOAUTH2_ACCESS_TOKEN_LENGTH,
     unique=True,
   )
 

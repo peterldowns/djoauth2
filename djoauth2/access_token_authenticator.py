@@ -63,7 +63,7 @@ class AccessTokenAuthenticator(object):
     expose_errors = False
 
     try:
-      if settings.DJOAUTH_SSL_ONLY and not request.is_secure():
+      if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
         raise InvalidRequest('insecure request: must use TLS')
 
       http_authorization = request.meta.get('HTTP_AUTHORIZATION', '')
@@ -110,7 +110,7 @@ class AccessTokenAuthenticator(object):
     we respond with error details formatted in JSON in the body of the
     response.
     """
-    authenticate_header = ['Bearer realm="{}"'.format(settings.DJOAUTH_REALM)]
+    authenticate_header = ['Bearer realm="{}"'.format(settings.DJOAUTH2_REALM)]
 
     if not expose_errors:
       response = HttpResponse(status=400)

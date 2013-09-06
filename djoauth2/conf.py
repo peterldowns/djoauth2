@@ -1,10 +1,11 @@
 # coding: utf-8
 from django.config import settings
+
 from appconf import AppConf
 
-class DJOAuthConf(AppConf):
+class DJOAuth2Conf(AppConf):
   class Meta:
-    prefix = 'djoauth'
+    prefix = 'djoauth2'
 
   ACCESS_TOKEN_LENGTH = 30
   ACCESS_TOKEN_LIFETIME = 3600

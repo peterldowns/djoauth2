@@ -78,7 +78,7 @@ class AuthorizationCodeGenerator(object):
     
     Read the specification: http://tools.ietf.org/html/rfc6749#section-4.1 .
     """
-    if settings.DJOAUTH_SSL_ONLY and not request.secure():
+    if settings.DJOAUTH2_SSL_ONLY and not request.secure():
       raise InvalidRequest('all requests must use TLS')
     
     self.request = request
@@ -91,7 +91,7 @@ class AuthorizationCodeGenerator(object):
       raise UnsupportedResponseType('"response_type" must be "code"')
 
     self.state = request.REQUEST.get('state')
-    if settings.DJOAUTH_REQUIRE_STATE and not self.state:
+    if settings.DJOAUTH2_REQUIRE_STATE and not self.state:
       raise InvalidRequest('"state" must be included')
 
     scope_names = set(request.REQUEST.get('scope', '').split(' '))
