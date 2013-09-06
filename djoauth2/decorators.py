@@ -5,19 +5,16 @@ from djoauth2.access_token_authenticator import AccessTokenAuthenticator
 
 def oauth_scope(*scope_names):
   """ Only allow requests with sufficient OAuth scope access."""
-  scope_names = scope_names or ()
-  if not scope_names:
-    raise ValueError('Must supply at least one scope name to protect this endpoint.')
-  
+  authenticator = AccessTokenAuthenticator(required_scopes=scope_names)
+
   def scope_decorator(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-      authenticator = AccessTokenAuthenticator(scope_names=scope_names)
-      authenticator.validate(request)
-      if authenticator.validation_exception:
-        return authenticator.error_response()
-
-      return view_func(authenticator, request, *args, **kwargs)
+      access_token, auth_exception = authenticator.validate(request)
+      if auth_exception:
+        return authenticator.make_error_response(auth_exception)
+      
+      return view_func(access_token, request, *args, **kwargs)
 
     return wrapper
 
