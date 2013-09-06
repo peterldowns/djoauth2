@@ -5,12 +5,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from djoauth2.conf import settings
-from djoauth2.exceptions import AccessTokenException
-from djoauth2.exceptions import InvalidClient
-from djoauth2.exceptions import InvalidGrant
-from djoauth2.exceptions import InvalidRequest
-from djoauth2.exceptions import InvalidScope
-from djoauth2.exceptions import UnsupportedGrantType
+from djoauth2.exceptions import DJOAuthException
 from djoauth2.models import AccessToken
 from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
@@ -148,8 +143,8 @@ def generate_access_token_from_authorization_code(request, client):
   # request.
   if (authorization_code.redirect_uri and
       authorization_code.redirect_uri != request.POST.get('redirect_uri')):
-    raise ValueError('"redirect_uri" value must match the value from '
-                     'the authorization code request')
+    raise InvalidRequest('"redirect_uri" value must match the value from '
+                         'the authorization code request')
 
   new_access_token = AccessToken.objects.create(
       user=authorization_code.user,
@@ -181,7 +176,7 @@ def generate_access_token_from_refresh_token(request, client):
         refresh_token=refresh_token_value,
         client=client)
   except AccessToken.DoesNotExist:
-    raise InvalidRequest('"{}" is not a valid "refresh_token"'.format(
+    raise InvalidGrant('"{}" is not a valid "refresh_token"'.format(
       refresh_token_value))
 
   if not existing_access_token.refreshable:
@@ -253,4 +248,62 @@ def generate_access_token_from_refresh_token(request, client):
 
   return new_access_token
 
+
+class AccessTokenException(DJOAuthException):
+  """ Base class for all AccessToken-related exceptions.
+
+  Read the specification: http://tools.ietf.org/html/rfc6749#section-5.2 .
+  """
+
+
+class InvalidRequest(AccessTokenException):
+  """ The request is missing a required parameter, includes an unsupported
+  parameter value (other than grant type), repeats a parameter, includes
+  multiple credentials, utilizes more than one mechanism for authenticating the
+  client, or is otherwise malformed.
+  """
+  error_name = 'invalid_request'
+
+
+class InvalidClient(AccessTokenException):
+  """ Client authentication failed (e.g., unknown client, no client
+  authentication included, or unsupported authentication method). The
+  authorization server MAY return an HTTP 401 (Unauthorized) status code to
+  indicate which HTTP authentication schemes are supported. If the client
+  attempted to authenticate via the "Authorization" request header field, the
+  authorization server MUST respond with an HTTP 401 (Unauthorized) status code
+  and include the "WWW-Authenticate" response header field matching the
+  authentication scheme used by the client.
+  """
+  error_name = 'invalid_client'
+
+
+class InvalidGrant(AccessTokenException):
+  """ The provided authorization grant (e.g., authorization code, resource
+  owner credentials) or refresh token is invalid, expired, revoked, does not
+  match the redirection URI used in the authorization request, or was issued to
+  another client.
+  """
+  error_name = 'invalid_grant'
+
+
+class UnauthorizedClient(AccessTokenException):
+  """ The authenticated client is not authorized to use this authorization
+  grant type.
+  """
+  error_name = 'unauthorized_client'
+
+
+class UnsupportedGrantType(AccessTokenException):
+  """ The authorization grant type is not supported by the authorization
+  server.
+  """
+  error_name = 'unsupported_grant_type'
+
+
+class InvalidScope(AccessTokenException):
+  """ The requested scope is invalid, unknown, malformed, or exceeds the scope
+  granted by the resource owner.
+  """
+  error_name = 'invalid_scope'
 
