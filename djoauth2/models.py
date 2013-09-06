@@ -12,7 +12,7 @@ class Client(models.Model):
   user = models.ForeignKey(User)
   name = models.CharField(max_length=256)
   description = models.TextField(null=True, blank=True)
-  redirect_uri = models.URLField()
+  redirect_uri = models.URLField(null=False, blank=False)
   key = models.CharField(
     db_index=True,
     default=random_hash_generator(settings.DJOAUTH_CLIENT_KEY_LENGTH),
@@ -48,7 +48,7 @@ class AuthorizationCode(models.Model):
   client = models.ForeignKey(Client)
   user = models.ForeignKey(User)
   date_created = models.DateTimeField(auto_now_add=True)
-  lifteime = models.PositiveIntegerField(
+  lifetime = models.PositiveIntegerField(
       default=settings.DJOAUTH_AUTHORIZATION_CODE_LIFETIME)
   redirect_uri = models.URLField(null=True, blank=True)
   scopes = models.ManyToManyField(Scope, related_name="authorization_codes")
@@ -59,8 +59,11 @@ class AuthorizationCode(models.Model):
     unique=True,
   )
 
+  def get_scope_names_set(self):
+    return {s.name for s in self.scopes.all()}
+
   def has_scope(self, *scope_names):
-    return set(scope_names) <= {s.name for s in self.scopes.all()}
+    return self.get_scope_names_set() >= set(scope_names)
 
   def is_expired(self):
     return datetime.utcnow() >= (self.date_created +
@@ -101,7 +104,7 @@ class AccessToken(models.Model):
     return {s.name for s in self.scopes.all()}
 
   def has_scope(self, *scope_names):
-    return self.get_scope_set() >= set(scope_names)
+    return self.get_scope_names_set() >= set(scope_names)
 
   def is_expired(self):
     return datetime.utcnow() >= (self.date_created +
