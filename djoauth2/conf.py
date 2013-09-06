@@ -19,5 +19,6 @@ class DJOAuthConf(AppConf):
   REFRESH_TOKEN_LENGTH = 30
 
   REALM = ''
+  REQUIRE_STATE = True
   SSL_ONLY = True
 
