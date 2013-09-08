@@ -25,7 +25,7 @@ def oauth_scope(*scope_names):
   object. The second argument will be the original HttpRequest, and all
   other parameters will follow.
   """
-  authenticator = AccessTokenAuthenticator(required_scopes=scope_names)
+  authenticator = AccessTokenAuthenticator(required_scope_names=scope_names)
 
   def scope_decorator(view_func):
     @wraps(view_func)
