@@ -12,7 +12,9 @@ class DJOAuth2Conf(AppConf):
   ACCESS_TOKENS_REFRESHABLE = True
 
   AUTHORIZATION_CODE_LENGTH = 30
-  AUTHORIZATION_CODE_LIFETIME = 120
+  # The specification ( http://tools.ietf.org/html/rfc6749#section-4.1.1 )
+  # recommends a liftime of 10 minutes.
+  AUTHORIZATION_CODE_LIFETIME = 600
 
   CLIENT_KEY_LENGTH = 30
   CLIENT_SECRET_LENGTH = 30
