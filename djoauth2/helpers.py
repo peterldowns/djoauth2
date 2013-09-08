@@ -2,7 +2,7 @@
 import random
 import urlparse
 from string import ascii_letters, digits
-from urllib2 import urlencode
+from urllib import urlencode
 
 # From http://tools.ietf.org/html/rfc6750#section-2.1
 BEARER_TOKEN_CHARSET = ascii_letters + digits + '-._~+/'

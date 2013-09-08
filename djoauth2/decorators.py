@@ -31,10 +31,10 @@ def oauth_scope(*scope_names):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
       access_token, error_response_arguments = authenticator.validate(request)
-      
+
       if not access_token:
         return authenticator.make_error_response(*error_response_arguments)
-      
+
       return view_func(access_token, request, *args, **kwargs)
 
     return wrapper

@@ -8,7 +8,7 @@ from djoauth2.exceptions import DJOAuthException
 from djoauth2.exceptions import get_error_details
 from djoauth2.models import AccessToken
 from djoauth2.models import Scope
- 
+
 class AccessTokenAuthenticator(object):
   """ Allows easy authentication checking and error response creation.
 
@@ -29,27 +29,27 @@ class AccessTokenAuthenticator(object):
     Returns a tuple of (access_token, error_response_arguments), which
     are described below.
 
-    @access_token: an AccessToken if the request is successfully authenticated, 
+    @access_token: an AccessToken if the request is successfully authenticated,
         otherwise None.
     @error_response_arguments: None if the request is successfully authenticated,
         otherwise a tuple of arguments to be used in a call to the 'make_error_response'
         method.
 
     For example, to restrict access to a given endpoint:
-    
+
         >>> def foo_bar_resource(request, *args, **kwargs):
         >>>   authenticator = AccessTokenAuthenticator(
         >>>       required_scope_names=('foo', 'bar'))
-        >>>   
+        >>>
         >>>   access_token, error_args = authenticator.validate(request)
         >>>   if not access_token:
         >>>     return authenticator.make_error_response(*error_args)
-        >>>   
+        >>>
         >>>   # ... can now return use access_token
-        >>>   
+        >>>
 
     """
-                            
+
     # From http://tools.ietf.org/html/rfc6750#section-3.1 :
     #
     #        If the request lacks any authentication information (e.g., the
@@ -77,7 +77,7 @@ class AccessTokenAuthenticator(object):
 
       if auth_method != 'Bearer':
         raise InvalidRequest('authentication method is not "Bearer"')
-      
+
       # Used in the case that the request does not validate. See comment above.
       # At this point in the validation, it is certain that the Client
       # attempted to authenticate via the 'bearer' method.
@@ -116,10 +116,10 @@ class AccessTokenAuthenticator(object):
       response = HttpResponse(status=400)
       response['WWW-Authenticate'] = ', '.join(authenticate_header)
       return response
-    
+
     status_code = 401
     error_details = get_error_details(validation_exception)
-    
+
     if isinstance(validation_exception, InvalidRequest):
       status_code = 400
     elif isinstance(validation_exception, InvalidToken):
@@ -135,7 +135,7 @@ class AccessTokenAuthenticator(object):
     response = HttpResponse(content=json.dumps(error_details),
                             content_type='application/json',
                             status=status_code)
-    
+
     for key, value in error_details:
       authenticate_header.append('{}="{}"'.format(key, value))
 

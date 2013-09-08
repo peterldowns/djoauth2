@@ -1,5 +1,5 @@
 # coding: utf-8
-from django.http import absolute_http_url_re
+from django.http.request import absolute_http_url_re
 from django.http import HttpResponseRedirect
 
 from djoauth2.conf import settings
@@ -23,7 +23,7 @@ class AuthorizationCodeGenerator(object):
       >>>     auth_code_generator.validate(request)
       >>>   except AuthorizationException:
       >>>     return auth_code_generator.error_redirect()
-      >>>   
+      >>>
       >>>   if request.method == 'GET':
       >>>     # Show a page for the user to see the scope request. Include a
       >>>     # form for the user to authorize or reject the request.
@@ -44,8 +44,8 @@ class AuthorizationCodeGenerator(object):
       >>>       return auth_code_generator.make_success_redirect()
       >>>     else:
       >>>       return auth_code_generator.make_error_redirect()
-      >>>  
-  
+      >>>
+
   An example of the 'oauth/authorize_page.html' template:
 
       <form action="{{form_action}}" method="POST">
@@ -64,7 +64,7 @@ class AuthorizationCodeGenerator(object):
         from the request.
     """
     self.missing_redirect_uri = missing_redirect_uri
-    # Values that will be set by the 'validate' method. 
+    # Values that will be set by the 'validate' method.
     self.user = None
     self.client = None
     self.redirect_uri = None
@@ -75,17 +75,17 @@ class AuthorizationCodeGenerator(object):
 
   def validate(self, request):
     """ Raise an exception if the authorization request is invalid.
-    
+
     Read the specification: http://tools.ietf.org/html/rfc6749#section-4.1 .
     """
-    if settings.DJOAUTH2_SSL_ONLY and not request.secure():
+    if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
       raise InvalidRequest('all requests must use TLS')
-    
+
     self.request = request
     self.user = request.user
     if not self.user.is_authenticated():
       raise UnauthenticatedUser('user must be authenticated')
-    
+
     response_type = request.REQUEST.get('response_type')
     if response_type != 'code':
       raise UnsupportedResponseType('"response_type" must be "code"')
@@ -115,7 +115,7 @@ class AuthorizationCodeGenerator(object):
     self.request_redirect_uri = request.REQUEST.get('redirect_uri')
     if not (self.client.redirect_uri or self.request_redirect_uri):
       raise InvalidRequest('no "redirect_uri" provided or registered')
-    
+
     if (self.client.redirect_uri and
           self.request_redirect_uri and
           self.client.redirect_uri != self.request_redirect_uri):
@@ -126,7 +126,7 @@ class AuthorizationCodeGenerator(object):
     # object.
     if not absolute_http_url_re.match(redirect_uri):
       raise InvalidRequest('"redirect_uri" must be absolute')
-    
+
     # Only store the redirect_uri value if it validates successfully. The
     # 'make_error_redirect' method will use the 'missing_redirect_uri' passed
     # to the '__init__' method if 'self.redirect_uri' is None.
@@ -200,7 +200,7 @@ class AuthorizationCodeGenerator(object):
     return HttpResponseRedirect(
         update_parameters(self.redirect_uri, response_params))
 
-    
+
 class AuthorizationException(DJOAuthException):
   """ Base class for authorization-related exceptions.
 

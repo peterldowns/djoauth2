@@ -28,7 +28,7 @@ def access_token_endpoint(request):
     client_id = request.POST.get('client_id')
     if not client_id:
       raise InvalidRequest('no "client_id" provided')
-    
+
     client_secret = request.POST.get('client_secret')
     if not client_secret:
       raise InvalidRequest('no "client_secret" provided"')
@@ -37,7 +37,7 @@ def access_token_endpoint(request):
       client = Client.objects.get(key=client_id, secret=client_secret)
     except Client.DoesNotExist:
       raise InvalidClient('client authentication failed')
-    
+
     # The two supported tyupes
     grant_type = request.POST.get('grant_type')
     if not grant_type:
@@ -50,7 +50,7 @@ def access_token_endpoint(request):
     else:
       raise UnsupportedGrantType(
           '"{}" is not a supported "grant_type"'.format(grant_type))
-    
+
     # Successful response documentation:
     # http://tools.ietf.org/html/rfc6749#section-5.1
     response_data = {
@@ -151,7 +151,7 @@ def generate_access_token_from_authorization_code(request, client):
       client=authorization_code.client,
       scopes=authorization_code.scopes)
   new_access_token.save()
-  
+
   # TODO(peter): instead of deleting the authorization code (making any further
   # attempts to use it fail with a 'Does not exist' error), store a
   # relationship to the created AccessToken object and mark the token as

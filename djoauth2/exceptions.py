@@ -12,8 +12,8 @@ def get_error_details(exception):
   Returns a mapping with two keys, 'error' and 'error_description', which are
   used in all error responses described by the OAuth 2.0 specification. Read
   more at:
-    * http://tools.ietf.org/html/rfc6749 
-    * http://tools.ietf.org/html/rfc6750 
+    * http://tools.ietf.org/html/rfc6749
+    * http://tools.ietf.org/html/rfc6750
   """
   return {
     'error': getattr(exception, 'error_name', 'invalid_request'),
