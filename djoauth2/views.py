@@ -148,8 +148,8 @@ def generate_access_token_from_authorization_code(request, client):
 
   new_access_token = AccessToken.objects.create(
       user=authorization_code.user,
-      client=authorization_code.client,
-      scopes=authorization_code.scopes)
+      client=authorization_code.client)
+  new_access_token.scopes = authorization_code.scopes.all()
   new_access_token.save()
 
   # TODO(peter): instead of deleting the authorization code (making any further
