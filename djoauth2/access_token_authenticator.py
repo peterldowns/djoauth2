@@ -66,7 +66,7 @@ class AccessTokenAuthenticator(object):
       if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
         raise InvalidRequest('insecure request: must use TLS')
 
-      http_authorization = request.meta.get('HTTP_AUTHORIZATION', '')
+      http_authorization = request.META.get('HTTP_AUTHORIZATION', '')
       if not http_authorization:
         raise InvalidRequest('missing HTTP_AUTHORIZATION header')
 
