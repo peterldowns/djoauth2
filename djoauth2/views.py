@@ -57,7 +57,7 @@ def access_token_endpoint(request):
         'access_token': access_token.value,
         'expires_in': access_token.lifetime,
         'token_type': 'bearer', # http://tools.ietf.org/html/rfc6749#section-7.1
-        'scope': ' '.join(access_token.get_scope_name_set()),
+        'scope': ' '.join(access_token.get_scope_names_set()),
       }
     if access_token.refreshable:
       response_data['refresh_token'] = access_token.refresh_token
