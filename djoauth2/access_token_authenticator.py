@@ -31,9 +31,9 @@ class AccessTokenAuthenticator(object):
 
     @access_token: an AccessToken if the request is successfully authenticated,
         otherwise None.
-    @error_response_arguments: None if the request is successfully authenticated,
-        otherwise a tuple of arguments to be used in a call to the 'make_error_response'
-        method.
+    @error_response_arguments: None if the request is successfully
+        authenticated, otherwise a tuple of arguments to be used in a call to
+        the 'make_error_response' method.
 
     For example, to restrict access to a given endpoint:
 

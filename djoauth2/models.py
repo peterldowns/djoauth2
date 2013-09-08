@@ -56,7 +56,7 @@ class AuthorizationCode(models.Model):
   lifetime = models.PositiveIntegerField(
       default=settings.DJOAUTH2_AUTHORIZATION_CODE_LIFETIME)
   redirect_uri = models.URLField(null=True, blank=True)
-  scopes = models.ManyToManyField(Scope, related_name="authorization_codes")
+  scopes = models.ManyToManyField(Scope, related_name='authorization_codes')
   value = models.CharField(
     db_index=True,
     default=make_authorization_code(
@@ -96,7 +96,7 @@ class AccessToken(models.Model):
     null=True,
     unique=True,
   )
-  scopes = models.ManyToManyField(Scope, related_name="access_tokens")
+  scopes = models.ManyToManyField(Scope, related_name='access_tokens')
   user = models.ForeignKey(User)
   value = models.CharField(
     db_index=True,

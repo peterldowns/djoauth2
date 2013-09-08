@@ -135,7 +135,7 @@ class AuthorizationCodeGenerator(object):
     self.redirect_uri = redirect_uri
 
   def get_request_uri_parameters(self, as_dict=False):
-    """ Return the URI parameters from a request passed to the 'validate' method.
+    """ Return the URI parameters from a request passed to the 'validate' method
 
     @as_dict: if True, returns the parameters as a dictionary. If False, returns
         the parameters as a URI-encoded string.
@@ -191,7 +191,9 @@ class AuthorizationCodeGenerator(object):
     new_authorization_code = AuthorizationCode.objects.create(
         user=self.user,
         client=self.client,
-        redirect_uri=self.request_redirect_uri if self.request_redirect_uri else None
+        redirect_uri=(self.request_redirect_uri
+                      if self.request_redirect_uri
+                      else None)
     )
     new_authorization_code.scopes = self.valid_scope_objects
     new_authorization_code.save()
