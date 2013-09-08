@@ -12,53 +12,69 @@ from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
 from djoauth2.models import Scope
 
-
 # TODO(peter): provide a method for easy checking to see if a Client has
-# received permission for the requested scopes in the past. This is a criticial
-# part of the authorization endpoint implementation -- it prevents users from
-# having to agree to the same questions over and over again.
+# received permission for the requested scopes in the past. This is NOT a
+# critical part of the authorization endpoint implementation, but it does allow
+# for much more convenience for users (they will not need to re-authorize.)
 
 
 class AuthorizationCodeGenerator(object):
-  # TODO(peter): re-write this docstring.
   """ Allows easy authorization request validation, code generation, and
   redirection creation.
 
   Use as part of your authorization page endpoint like so:
 
-      >>> def authorization(request, *args, **kwargs):
-      >>>   auth_code_generator = AuthorizationCodeGenerator('/oauth/missing_redirect_uri')
-      >>>   try:
-      >>>     auth_code_generator.validate(request)
-      >>>   except AuthorizationException:
-      >>>     return auth_code_generator.error_redirect()
-      >>>
-      >>>   if request.method == 'GET':
-      >>>     # Show a page for the user to see the scope request. Include a
-      >>>     # form for the user to authorize or reject the request.
-      >>>     # Make sure to include all of the original authorization request's
-      >>>     # parameters with the form so that they can be accessed when the user
-      >>>     # submits the form
-      >>>     original_request_parameters = auth_code_generator.get_request_uri_parameters()
-      >>>     # See the template example below.
-      >>>     template_render_context = {
-      >>>         'form' : Form(),
-      >>>         # Assumes that this endpoint is connected to '/oauth/authorize/'
-      >>>         'form_action': '/oauth/authorize/?' + original_request_parameters,
-      >>>       }
-      >>>     return render('oauth/authorize_page.html', template_render_context)
-      >>>   elif request.method == 'POST':
-      >>>     # Check the form the user submits. See the template example below.
-      >>>     if request.POST.get('user_action') == 'Accept':
-      >>>       return auth_code_generator.make_success_redirect()
-      >>>     else:
-      >>>       return auth_code_generator.make_error_redirect()
-      >>>
+    >>> def authorization(request):
+    >>>   auth_code_generator = AuthorizationCodeGenerator(
+    >>>       '/oauth2/missing_redirect_uri/')
+    >>>   try:
+    >>>     auth_code_generator.validate(request)
+    >>>   except AuthorizationException as e:
+    >>>     print e
+    >>>     raise e
+    >>>     return auth_code_generator.make_error_redirect()
+    >>>
+    >>>   if request.method == 'GET':
+    >>>     # Show a page for the user to see the scope request. Include a form
+    >>>     # for the user to authorize or reject the request. Make sure to
+    >>>     # include all of the # original authorization request's parameters
+    >>>     # with the form so that they # can be accessed when the user submits
+    >>>     # the form.
+    >>>     original_request_parameters = (
+    >>>         auth_code_generator.get_request_uri_parameters())
+    >>>     # See the template example below.
+    >>>     template_render_context = {
+    >>>         'form': Form(),
+    >>>         'client': auth_code_generator.client,
+    >>>         'scopes': auth_code_generator.valid_scope_objects,
+    >>>         # Assumes that this endpoint is connected to
+    >>>         # the '/oauth/authorization/' URL.
+    >>>         'form_action': ('/oauth2/authorization/?' +
+    >>>                         original_request_parameters),
+    >>>       }
+    >>>     return render(request,
+    >>>                   'oauth2server/authorization_page.html',
+    >>>                   template_render_context)
+    >>>   elif request.method == 'POST':
+    >>>     # Check the form the user submits (see the template below.)
+    >>>     if request.POST.get('user_action') == 'Accept':
+    >>>       return auth_code_generator.make_success_redirect()
+    >>>     else:
+    >>>       return auth_code_generator.make_error_redirect()
 
-  An example of the 'oauth/authorize_page.html' template:
+  An example of the 'authorization_page.html' template:
+
+      <p>{{client.name}} is requesting access to the following scopes:</p>
+
+      <ul>
+        {% for scope in scopes %}
+        <li> <b>{{scope.name}}</b>: {{scope.description}} </li>
+        {% endfor %}
+      </ul>
+
 
       <form action="{{form_action}}" method="POST">
-        {{csrf_token}}
+        {% csrf_token %}
         <div style="display: none;"> {{form}} </div>
         <input type="submit" name="user_action" value="Decline"/>
         <input type="submit" name="user_action" value="Accept"/>
@@ -159,14 +175,14 @@ class AuthorizationCodeGenerator(object):
 
     return urlencode(self.request.REQUEST.items())
 
-
   def make_error_redirect(self):
     """ Return an HttpResponseRedirect when the authorization request fails.
 
     If the 'validate' method raises an error, the authorization endpoint should
     return the result of this method like so:
 
-      >>> auth_code_generator = AuthorizationCodeGenerator('/oauth2/missing_redirect_uri/')
+      >>> auth_code_generator = (
+      >>>     AuthorizationCodeGenerator('/oauth2/missing_redirect_uri/'))
       >>> try:
       >>>   auth_code_generator.validate(request)
       >>> except AuthorizationException:
@@ -186,7 +202,6 @@ class AuthorizationCodeGenerator(object):
       response_params['state'] = self.state
     return HttpResponseRedirect(
         update_parameters(self.redirect_uri, response_params))
-
 
   def make_success_redirect(self):
     """ Return an HttpResponseRedirect when the authorization request succeeds.
