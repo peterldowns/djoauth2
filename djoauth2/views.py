@@ -44,9 +44,10 @@ def access_token_endpoint(request):
       raise InvalidRequest('no "grant_type" provided')
 
     if grant_type == 'authorization_code':
-      access_token = generate_access_token_from_authorization_code(request, client)
+      access_token = generate_access_token_from_authorization_code(request,
+                                                                   client)
     elif grant_type == 'refresh_token':
-      access_token = generate_access_token_from_authorization_code(request, client)
+      access_token = generate_access_token_from_refresh_token(request, client)
     else:
       raise UnsupportedGrantType(
           '"{}" is not a supported "grant_type"'.format(grant_type))
@@ -107,16 +108,17 @@ def generate_access_token_from_authorization_code(request, client):
         value=authorization_code_value,
         client=client)
   except AuthorizationCode.DoesNotExist:
-    raise InvalidGrant('"{}" is not a valid "code"'.format(authorization_code_value))
+    raise InvalidGrant(
+        '"{}" is not a valid "code"'.format(authorization_code_value))
 
   if authorization_code.is_expired():
     # TODO(peter): implement an access counter and follow the recommendation
     # of http://tools.ietf.org/html/rfc6749#section-10.5:
     #
     #     If the authorization server observes multiple attempts to exchange an
-    #     authorization code for an access token, the authorization server SHOULD
-    #     attempt to revoke all access tokens already granted based on the
-    #     compromised authorization code.
+    #     authorization code for an access token, the authorization server
+    #     SHOULD attempt to revoke all access tokens already granted based on
+    #     the compromised authorization code.
     #
     raise InvalidGrant('provided "code" is expired')
 
@@ -207,16 +209,22 @@ def generate_access_token_from_refresh_token(request, client):
   # it from a security standpoint.
   #
   # TODO(peter): reach a decision regarding this behavior.
-  new_scope_names = request.POST.get('scope', '').split(' ')
-  if not existing_access_token.has_scope(*new_scope_names):
-    raise InvalidScope('requested scopes exceed initial grant')
 
-  new_scope_objects = []
-  for scope_name in new_scope_names:
-    try:
-      new_scope_objects.append(Scope.objects.get(name=scope_name))
-    except Scope.DoesNotExist:
-      raise InvalidScope('"{}" is not a valid scope'.format(scope_name))
+  scope_objects = existing_access_token.scopes.all()
+  new_scope_names = request.POST.get('scope', '')
+  if new_scope_names:
+    # TODO(peter): use set-based method from the AuthorizationCodeGenerator:107.
+    new_scope_names = new_scope_names.split(' ')
+    if not existing_access_token.has_scope(*new_scope_names):
+      raise InvalidScope('requested scopes exceed initial grant')
+
+    scope_objects = []
+    for scope_name in new_scope_names:
+      try:
+        scope_objects.append(Scope.objects.get(name=scope_name))
+      except Scope.DoesNotExist:
+        raise InvalidScope('"{}" is not a valid scope'.format(scope_name))
+
 
   # The new AccessToken is only refreshable if at the time of refresh the
   # server is configured to create refreshable tokens by default. It DOES NOT
@@ -224,17 +232,17 @@ def generate_access_token_from_refresh_token(request, client):
   # described in the specification; I believe this to be a sane decision.
   new_access_token = AccessToken.objects.create(
       user=existing_access_token.user,
-      client=existing_access_token.client,
-      scopes=new_scope_objects)
+      client=existing_access_token.client)
+  new_access_token.scopes = scope_objects
   new_access_token.save()
 
   # TODO(peter): instead of deleting the existing access token / refresh token
   # pair (that was just used to create the new access token), store a reference
-  # to the newly created access token and mark the existing token as 'expired'. This
-  # allows tokens to remain in the DB for later analysis, but still prevents a
-  # refresh token from being used multiple times. In the event that an 'expired'
-  # refresh token is used, it would be asy to alert the Client, as recommended by
-  # http://tools.ietf.org/html/rfc6749#section-10.4:
+  # to the newly created access token and mark the existing token as 'expired'.
+  # This allows tokens to remain in the DB for later analysis, but still
+  # prevents a refresh token from being used multiple times. In the event that
+  # an 'expired' refresh token is used, it would be asy to alert the Client, as
+  # recommended by http://tools.ietf.org/html/rfc6749#section-10.4 :
   #
   #     For example, the authorization server could employ refresh token
   #     rotation in which a new refresh token is issued with every access token
