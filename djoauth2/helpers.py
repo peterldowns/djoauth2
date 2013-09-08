@@ -22,10 +22,16 @@ def update_parameters(url, parameters):
   @url: a URL string.
   @parameters: a dictionary of parameters, {string:string}.
   """
-  parsed_url = urlparse(url)
-
-  query_parameters = urlparse.parse_qsl(parsed_url.query)
-  parsed_url.query = urlencode(query_parameters + parameters.items())
-
-  return urlparse.urlunparse(parsed_url)
+  parsed_url = urlparse.urlparse(url)
+  existing_query_parameters = urlparse.parse_qsl(parsed_url.query)
+  # Read http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
+  # if this is confusing.
+  return urlparse.urlunparse((
+      parsed_url.scheme,
+      parsed_url.netloc,
+      parsed_url.path,
+      parsed_url.params,
+      urlencode(existing_query_parameters + parameters.items()),
+      parsed_url.fragment
+    ))
 
