@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils.timezone import now
 
 from djoauth2.conf import settings
 from djoauth2.helpers import make_authorization_code
@@ -71,8 +72,7 @@ class AuthorizationCode(models.Model):
     return self.get_scope_names_set() >= set(scope_names)
 
   def is_expired(self):
-    return datetime.utcnow() >= (self.date_created +
-                                 timedelta(seconds=self.lifetime))
+    return now() >= (self.date_created + timedelta(seconds=self.lifetime))
 
   def __unicode__(self):
     return unicode(self.value)
@@ -112,8 +112,7 @@ class AccessToken(models.Model):
     return self.get_scope_names_set() >= set(scope_names)
 
   def is_expired(self):
-    return datetime.utcnow() >= (self.date_created +
-                                 timedelta(seconds=self.lifetime))
+    return now() >= (self.date_created + timedelta(seconds=self.lifetime))
 
   def __unicode__(self):
     return unicode(self.value)
