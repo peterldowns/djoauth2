@@ -175,7 +175,7 @@ class AuthorizationCodeGenerator(object):
 
     validation_error = AccessDenied('user denied the request')
     response_params = get_error_details(validation_error)
-    if self.state:
+    if settings.DJOAUTH2_REQUIRE_STATE:
       response_params['state'] = self.state
     return HttpResponseRedirect(
         update_parameters(self.redirect_uri, response_params))
@@ -191,14 +191,14 @@ class AuthorizationCodeGenerator(object):
     new_authorization_code = AuthorizationCode.objects.create(
         user=self.user,
         client=self.client,
-        redirect_uri=self.request_redirect_uri if self.request_redirect_uri else None,
-        scopes=self.valid_scope_objects)
+        redirect_uri=self.request_redirect_uri if self.request_redirect_uri else None
+    )
+    new_authorization_code.scopes = self.valid_scope_objects
     new_authorization_code.save()
 
-    response_params = {
-        'code': new_authorization_code.value,
-        'state': self.state
-      }
+    response_params = {'code': new_authorization_code.value}
+    if settings.DJOAUTH2_REQUIRE_STATE:
+      response_params['state'] = self.state
     return HttpResponseRedirect(
         update_parameters(self.redirect_uri, response_params))
 
