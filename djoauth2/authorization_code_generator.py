@@ -1,4 +1,6 @@
 # coding: utf-8
+from urllib import urlencode
+
 from django.http.request import absolute_http_url_re
 from django.http import HttpResponseRedirect
 
@@ -148,7 +150,7 @@ class AuthorizationCodeGenerator(object):
     if as_dict:
       return self.request.REQUEST.dict()
 
-    return self.request.REQUEST.urlencode()
+    return urlencode(self.request.REQUEST.items())
 
 
   def make_error_redirect(self):
