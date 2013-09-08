@@ -13,7 +13,14 @@ from djoauth2.models import Client
 from djoauth2.models import Scope
 
 
+# TODO(peter): provide a method for easy checking to see if a Client has
+# received permission for the requested scopes in the past. This is a criticial
+# part of the authorization endpoint implementation -- it prevents users from
+# having to agree to the same questions over and over again.
+
+
 class AuthorizationCodeGenerator(object):
+  # TODO(peter): re-write this docstring.
   """ Allows easy authorization request validation, code generation, and
   redirection creation.
 
