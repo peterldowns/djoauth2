@@ -4,6 +4,10 @@ from django.conf import settings
 from appconf import AppConf
 
 class DJOAuth2Conf(AppConf):
+  """ Default OAuth-related settings.
+
+  Overriding these settings, while possible, is NOT recommended.
+  """
   class Meta:
     prefix = 'djoauth2'
 
