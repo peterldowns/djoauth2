@@ -1,8 +1,8 @@
 # coding: utf-8
 import random
 import urlparse
-from string import digits
 from string import ascii_letters
+from string import digits
 from urllib import urlencode
 
 # The OAuth 2.0 Bearer specification (
@@ -43,7 +43,7 @@ def make_client_secret(length):
   return lambda: random_string(length, CLIENT_SECRET_CHARSET)
 
 
-def make_client_key_secret(length):
+def make_client_key(length):
   return lambda: random_string(length, CLIENT_KEY_CHARSET)
 
 
