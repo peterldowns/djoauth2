@@ -23,6 +23,8 @@ def access_token_endpoint(request):
     if settings.DJOAUTH2_SSL_ONLY and not request.secure():
       raise InvalidRequest('all requests must use TLS')
 
+    # TODO(peter): include an explicit check for request.method is POST
+
     # Must include client authentication in requests to the token endpoint.
     # http://tools.ietf.org/html/rfc6749#section-3.2.1
     client_id = request.POST.get('client_id')
