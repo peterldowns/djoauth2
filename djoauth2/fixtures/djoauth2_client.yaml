@@ -16,14 +16,3 @@
     description: 'Client 2'
     redirect_uri: 'https://locu.com'
     user: 1
-- model: djoauth2.client
-  pk: 3
-  fields:
-    key: 316b44c9bf1874aa7601ae6bb18bb7
-    secret: e387e3ac61c737a7c498fb94314513
-    name: 'Client 3'
-    description: 'Client 3'
-    redirect_uri: 'https://locu.com'
-    auto_grant_scopes: [3]
-    user: 1
-
