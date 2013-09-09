@@ -1,0 +1,29 @@
+- model: djoauth2.client
+  pk: 1
+  fields:
+    key: be6f31235c6118273918c4c70f6768
+    secret: 89dcee4e6fe655377a19944c2bee9b
+    name: 'Client 1'
+    description: 'Client 1'
+    redirect_uri: 'https://locu.com'
+    user: 1
+- model: djoauth2.client
+  pk: 2
+  fields:
+    key: 5cf2a7ce5e13ee4dde88717e48fcc6
+    secret: 4cf14dc7e7c539047e3d2afb0bdba5
+    name: 'Client 2'
+    description: 'Client 2'
+    redirect_uri: 'https://locu.com'
+    user: 1
+- model: djoauth2.client
+  pk: 3
+  fields:
+    key: 316b44c9bf1874aa7601ae6bb18bb7
+    secret: e387e3ac61c737a7c498fb94314513
+    name: 'Client 3'
+    description: 'Client 3'
+    redirect_uri: 'https://locu.com'
+    auto_grant_scopes: [3]
+    user: 1
+

@@ -1,0 +1,15 @@
+- model: auth.user
+  pk: 1
+  fields:
+    date_joined: 2012-09-20 04:40:34
+    email: testuser@locu.com
+    first_name: Test
+    groups: []
+    is_active: true
+    is_staff: false
+    is_superuser: false
+    last_login: 2012-11-06 05:06:17.252447
+    last_name: User
+    password: sha1$mbQPy7lnO1zb$75af66a0f8426863d46fd8dd6cb9ea317b1e2db7
+    user_permissions: []
+    username: testuser@locu.com
