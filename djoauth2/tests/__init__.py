@@ -1,6 +1,6 @@
 # coding: utf-8
 import json
-from md5 import md5
+from hashlib import md5
 from random import random
 
 from django.conf import settings
@@ -14,7 +14,7 @@ from djoauth2.models import Client
 from djoauth2.models import Scope
 
 def remove_empty_parameters(params):
-  for key, value in params.iteritems():
+  for key, value in params.items():
     if value is None:
       del params[key]
 
@@ -32,6 +32,7 @@ class DJOAuth2TestClient(TestClient):
     self.access_token = None
     self.refresh_token = None
     self.lifetime = None
+    super(DJOAuth2TestClient, self).__init__()
 
   @property
   def scope_string(self):
@@ -60,12 +61,12 @@ class DJOAuth2TestClient(TestClient):
       }
     data.update(custom or {})
     remove_empty_parameters(data)
-    
+
     # Respect default ssl settings if no value is passed.
     if use_ssl is None:
       use_ssl = self.ssl_only
 
-    response = self.get(self.token_endpoint, data=data, **{
+    response = self.post(self.token_endpoint, data=data, **{
       'wsgi.url_scheme': 'https' if use_ssl else 'http'})
     self.load_token_data(response)
     return response
@@ -94,7 +95,7 @@ class DJOAuth2TestClient(TestClient):
     if use_ssl is None:
       use_ssl = self.ssl_only
 
-    response = self.get(self.token_endpoint, data=data, **{
+    response = self.post(self.token_endpoint, data=data, **{
       'wsgi.url_scheme': 'https' if use_ssl else 'http'})
     self.load_token_data(response)
     return response
@@ -165,7 +166,7 @@ class DJOAuth2TestCase(TestCase):
       'user' : user,
       'client' : client,
       'redirect_uri' : client.redirect_uri,
-      'scopes' : self.scope_objects,
+      'scopes' : self.oauth_client.scope_objects,
     }
     object_params.update(custom or {})
     # Cannot create a new Django object with a ManyToMany relationship defined
@@ -187,7 +188,7 @@ class DJOAuth2TestCase(TestCase):
     params = {
       'user' : user,
       'client' : client,
-      'scopes' : self.scope_objects
+      'scopes' : self.oauth_client.scope_objects
     }
     params.update(custom or {})
     # Cannot create a new Django object with a ManyToMany relationship defined
@@ -199,12 +200,12 @@ class DJOAuth2TestCase(TestCase):
       access_token.scopes = scopes
       access_token.save()
     return access_token
-  
+
   def delete_access_token(self, access_token):
     if not isinstance(access_token, AccessToken):
       raise ValueError("Not an AccessToken!")
     return access_token.delete()
-  
+
   def create_scope(self, custom=None):
     random_string = md5(str(random())).hexdigest()
     params = {
@@ -235,12 +236,12 @@ class TestAccessToken(DJOAuth2TestCase):
         {'redirect_uri' : None})
 
     # Override the default redirect param to not exist.
-    response = self.request_access_token(
+    response = self.oauth_client.request_access_token(
         self.client,
         authcode.value,
         custom={
           'redirect_uri' : None,
         })
 
-    self.assert_token_success(response)
+    self.oauth_client.assert_token_success(response)
 
