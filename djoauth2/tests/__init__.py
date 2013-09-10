@@ -78,11 +78,11 @@ class DJOAuth2TestClient(TestClient):
                                   client,
                                   authorization_code_value,
                                   **kwargs):
-    custom = kwargs.pop('custom', {})
-    custom.update({
+    custom = {
       'grant_type': 'authorization_code',
       'code': authorization_code_value,
-    })
+    }
+    custom.update(kwargs.pop('custom', {}))
     kwargs['custom'] = custom
     return self.access_token_request(client, **kwargs)
 
@@ -90,13 +90,13 @@ class DJOAuth2TestClient(TestClient):
                                   client,
                                   refresh_token_value,
                                   **kwargs):
-
-    custom = kwargs.pop('custom', {})
-    custom.update({
-      'refresh_token': refresh_token_value,
+    custom = {
       'grant_type': 'refresh_token',
-    })
+      'refresh_token': refresh_token_value,
+    }
+    custom.update(kwargs.pop('custom', {}))
     kwargs['custom'] = custom
+
     return self.access_token_request(client, **kwargs)
 
 
@@ -210,7 +210,7 @@ class DJOAuth2TestCase(TestCase):
     self.assertIsNone(self.oauth_client.lifetime)
 
 
-class TestAccessToken(DJOAuth2TestCase):
+class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
   def test_pass_no_redirect_defaults_to_registered(self):
     """ If the OAuth client has registered a redirect uri, it is OK to not
     explicitly pass the same URI again.
@@ -423,8 +423,22 @@ class TestAccessToken(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
-class TestRefreshToken(DJOAuth2TestCase):
-  def test_no_scope_succeeds(self):
+
+class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
+  def test_tokens_not_refreshable_fails(self):
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = False
+
+    access_token = self.create_access_token(self.user, self.client)
+    self.assertFalse(access_token.refreshable)
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client, access_token.refresh_token)
+
+    self.assert_token_failure(response)
+
+
+  def test_request_with_no_scope_succeeds(self):
     """ If an OAuth client makes a refresh token request without specifying the
     scope, the client should receive a token with the same scopes as the
     original.
@@ -441,10 +455,161 @@ class TestRefreshToken(DJOAuth2TestCase):
         self.client,
         access_token.refresh_token,
         custom={
-          'scope' : None
+          'scope': None
         })
 
     self.assert_token_success(response2)
     refresh_data = json.loads(response2.content)
     self.assertEqual(refresh_data['scope'], self.oauth_client.scope_string)
+
+  def test_request_with_same_scope_succeeds(self):
+    """ A request for a new AccessToken made with a RefreshToken that includes
+    a scope parameter for the same scope as the existing
+    RefreshToken/AccessToken pair should succeed.
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
+
+    access_token_1 = self.create_access_token(self.user, self.client)
+    scope_string_1 = self.oauth_client.scope_string
+
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client,
+        access_token_1.refresh_token,
+        custom={
+          'scope': scope_string_1,
+        })
+
+    self.assert_token_success(response)
+    scope_string_2 = json.loads(response.content).get('scope')
+    self.assertEqual(scope_string_1, scope_string_2)
+
+  def test_request_with_subset_of_initial_scope(self):
+    """ Refresh token requests that specify a subset of the scope of the
+    initial access token should result in a new access token being granted with
+    the requested scope.
+
+    This is implementation-defined behavior, not described by the
+    specification.
+    """
+    scope_list_1 = ['verify', 'autologin']
+    self.initialize(scope_names=scope_list_1)
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
+
+    access_token_1 = self.create_access_token(self.user, self.client)
+    scope_string_1 = self.oauth_client.scope_string
+
+    scope_list_2 = scope_list_1[:1]
+    self.assertGreater(set(scope_list_1), set(scope_list_2))
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client,
+        access_token_1.refresh_token,
+        custom={
+          'scope': ' '.join(scope_list_2),
+        })
+
+    self.assert_token_success(response)
+
+    refresh_scope_string = json.loads(response.content).get('scope')
+    self.assertIsNotNone(refresh_scope_string)
+
+    refresh_scope_list = refresh_scope_string.split(' ')
+    self.assertEqual(set(scope_list_2), set(refresh_scope_list))
+    self.assertGreater(set(scope_list_1), set(refresh_scope_list))
+
+  def test_request_with_superset_of_initial_scope(self):
+    """ RefreshToken-based requests for new AccessTokens that ask
+    for scopes beyond those granted to the initial AccessToken/RefreshToken
+    pair should fail.
+    """
+    scope_list_1 = ['verify', 'autologin']
+    self.initialize(scope_names=scope_list_1)
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
+
+    access_token_1 = self.create_access_token(self.user, self.client)
+    scope_string_1 = self.oauth_client.scope_string
+
+    scope_list_2 = scope_list_1 + ['example']
+    self.assertGreater(set(scope_list_2), set(scope_list_1))
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client,
+        access_token_1.refresh_token,
+        custom={
+          'scope': ' '.join(scope_list_2),
+        })
+
+    self.assert_token_failure(response)
+
+  def test_request_with_nonexistent_refresh_token_(self):
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
+
+    refresh_token_value = 'doesnotexist'
+    self.assertFalse(
+        AccessToken.objects.filter(refresh_token=refresh_token_value).exists())
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client, refresh_token_value)
+
+    self.assert_token_failure(response)
+
+  def test_request_with_invalid_grant_type(self):
+    """ RefreshToken-based requests for new AccessTokens that specify a
+    "grant_type" parameter that isn't "refresh_token" will fail.
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client,
+        access_token.refresh_token,
+        custom={
+          'grant_type': 'not_refresh_token',
+        })
+
+    self.assert_token_failure(response)
+
+  def test_request_with_mismatched_client(self):
+    """ One client ay not refresh another client's token. """
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
+
+    default_client_access_token = self.create_access_token(
+        self.user, self.client)
+
+    self.assertNotEqual(default_client_access_token.client.key,
+                        self.client2.key)
+    self.assertNotEqual(default_client_access_token.client.secret,
+                        self.client2.secret)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client2, default_client_access_token.value)
+
+    self.assert_token_failure(response)
+
+  def test_multiple_access_same_token(self):
+    """ Each refresh token can only be used once. Attempting to refresh with a
+    token that has already been used will result in a failure.
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
+
+    access_token_1 = self.create_access_token(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client,
+        access_token_1.refresh_token)
+
+    self.assert_token_success(response)
+
+    response2 = self.oauth_client.request_token_from_refresh_token(
+        self.client,
+        access_token_1.refresh_token)
+
+    self.assert_token_failure(response2)
 
