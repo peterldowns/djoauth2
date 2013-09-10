@@ -129,9 +129,9 @@ class DJOAuth2TestClient(TestClient):
 
 class DJOAuth2TestCase(TestCase):
   fixtures = (
-      'auth_user.yaml',
-      'djoauth2_client.yaml',
-      'djoauth2_scope.yaml'
+      'auth_user.json',
+      'djoauth2_client.json',
+      'djoauth2_scope.json'
     )
 
   def initialize(self, **kwargs):
