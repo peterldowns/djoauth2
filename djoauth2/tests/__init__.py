@@ -628,7 +628,7 @@ def make_oauth_protected_endpoint(*args, **kwargs):
   protected with the @oauth_scope decorator -- see that function's signature
   for a description of the parameters that may be passed. """
   @oauth_scope(*args, **kwargs)
-  def api_endpoint(authenticator, request):
+  def api_endpoint(access_token, request):
     """ A Dummy API endpoint that accepts no URL parameters.
 
     Always returns True.
