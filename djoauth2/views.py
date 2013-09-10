@@ -18,15 +18,23 @@ def access_token_endpoint(request):
   This endpoint only supports two grant types:
     * authorization_code: http://tools.ietf.org/html/rfc6749#section-4.1
     * refresh_token: http://tools.ietf.org/html/rfc6749#section-6
+
+  For further documentation, read http://tools.ietf.org/html/rfc6749#section-3.2
   """
   try:
-    if settings.DJOAUTH2_SSL_ONLY and not request.secure():
+    if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
       raise InvalidRequest('all requests must use TLS')
 
-    # TODO(peter): include an explicit check for request.method is POST
+    # From http://tools.ietf.org/html/rfc6749#section-3.2 :
+    #
+    #     The client MUST use the HTTP "POST" method when making access token
+    #     requests.
+    #
+    if not request.method == 'POST':
+      raise InvalidRequest('all posts must use POST')
 
-    # Must include client authentication in requests to the token endpoint.
-    # http://tools.ietf.org/html/rfc6749#section-3.2.1
+    # Must include client authentication in requests to the token endpoint:
+    # http://tools.ietf.org/html/rfc6749#section-3.2.1 .
     client_id = request.POST.get('client_id')
     if not client_id:
       raise InvalidRequest('no "client_id" provided')
@@ -40,7 +48,7 @@ def access_token_endpoint(request):
     except Client.DoesNotExist:
       raise InvalidClient('client authentication failed')
 
-    # The two supported tyupes
+    # The two supported grant types
     grant_type = request.POST.get('grant_type')
     if not grant_type:
       raise InvalidRequest('no "grant_type" provided')
