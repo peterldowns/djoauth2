@@ -8,7 +8,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import Client as TestClient
 from django.test import TestCase
+from django.test.client import RequestFactory
 
+from djoauth2.decorators import oauth_scope
 from djoauth2.models import AccessToken
 from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
@@ -49,6 +51,13 @@ class DJOAuth2TestClient(TestClient):
   @property
   def last_response(self):
     return self.history[-1] if self.history else None
+
+  def make_api_request(self, access_token, data=None, method='POST'):
+    factory = RequestFactory()
+    request_method = getattr(factory, method.lower())
+    api_request = request_method('/url/does/not/matter', data)
+    api_request.META['HTTP_AUTHORIZATION'] = 'Bearer ' + access_token.value
+    return api_request
 
   def access_token_request(self,
                            client,
@@ -612,4 +621,104 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
         access_token_1.refresh_token)
 
     self.assert_token_failure(response2)
+
+
+def make_oauth_protected_endpoint(*args, **kwargs):
+  """ Returns a dummy API endpoint that returns True. This endpoint will be
+  protected with the @oauth_scope decorator -- see that function's signature
+  for a description of the parameters that may be passed. """
+  @oauth_scope(*args, **kwargs)
+  def api_endpoint(authenticator, request):
+    """ A Dummy API endpoint that accepts no URL parameters.
+
+    Always returns True.
+    """
+    return True
+
+  return api_endpoint
+
+
+class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
+  def test_scope_same(self):
+    """ A client with access to a given scope should have access to all
+    endpoints protected with that scope. """
+    self.initialize(scope_names=['verify'])
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET')
+    api_endpoint = make_oauth_protected_endpoint('verify')
+
+    response = api_endpoint(api_request)
+    self.assertIs(response, True)
+
+  def test_scope_superset(self):
+    """ A client with multiple scopes sould have access to all endpoints
+    protected with a subset of those scopes. """
+    self.initialize(scope_names=['verify', 'autologin'])
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET')
+    api_endpoint = make_oauth_protected_endpoint('verify')
+
+    response = api_endpoint(api_request)
+    self.assertIs(response, True)
+
+  def test_scope_subset(self):
+    """ A client without access to the scope protecting an endpoint should
+    receive a 403 error when making requests to said endpoint. """
+    self.initialize(scope_names=['verify'])
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET')
+    api_endpoint = make_oauth_protected_endpoint('verify', 'autologin')
+
+    api_response = api_endpoint(api_request)
+    self.assertEqual(api_response.status_code, 403, api_response.status_code)
+    self.assertIn('WWW-Authenticate', api_response)
+
+
+  def test_expired_access_token(self):
+    """ If a request is made with an expired token, the endpoint should respond
+    with status code 401. """
+    self.initialize(scope_names=['verify'])
+
+    access_token = self.create_access_token(self.user, self.client)
+    access_token.date_created -= datetime.timedelta(
+        seconds=access_token.lifetime)
+    access_token.save()
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET')
+    api_endpoint = make_oauth_protected_endpoint('verify')
+
+    api_response = api_endpoint(api_request)
+    self.assertEqual(api_response.status_code, 401, api_response.status_code)
+    self.assertIn('WWW-Authenticate', api_response)
+
+  def test_missing_authentication_header(self):
+    """ If an API request is made without a WWW-Authenticate header containing
+    an access token, it sould receive a response with status code 400. """
+    self.initialize(scope_names=['verify'])
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET')
+
+    if 'HTTP_AUTHORIZATION' in api_request.META:
+      del api_request.META['HTTP_AUTHORIZATION']
+
+    self.assertNotIn('HTTP_AUTHORIZATION', api_request.META)
+
+    api_endpoint = make_oauth_protected_endpoint('verify')
+
+    api_response = api_endpoint(api_request)
+    self.assertEqual(api_response.status_code, 400, api_response.status_code)
+    self.assertIn('WWW-Authenticate', api_response)
 
