@@ -14,9 +14,15 @@ from djoauth2.helpers import make_client_secret
 
 
 class Client(models.Model):
+  # TODO(peter): include a field for an image / logo of some sort.
   user = models.ForeignKey(User)
   name = models.CharField(max_length=256)
   description = models.TextField(null=True, blank=True)
+  # From http://tools.ietf.org/html/rfc6749#section-3.1.2.2 :
+  #
+  #   The authorization server SHOULD require all clients to register their
+  #   redirection endpoint prior to utilizing the authorization endpoint.
+  #
   redirect_uri = models.URLField(null=False, blank=False)
   key = models.CharField(
     db_index=True,
