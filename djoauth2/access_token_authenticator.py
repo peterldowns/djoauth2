@@ -136,7 +136,7 @@ class AccessTokenAuthenticator(object):
                             content_type='application/json',
                             status=status_code)
 
-    for key, value in error_details:
+    for key, value in error_details.iteritems():
       authenticate_header.append('{}="{}"'.format(key, value))
 
     response['WWW-Authenticate'] = ', '.join(authenticate_header)
