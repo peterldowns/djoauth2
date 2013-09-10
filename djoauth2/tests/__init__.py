@@ -423,3 +423,28 @@ class TestAccessToken(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
+class TestRefreshToken(DJOAuth2TestCase):
+  def test_no_scope_succeeds(self):
+    """ If an OAuth client makes a refresh token request without specifying the
+    scope, the client should receive a token with the same scopes as the
+    original.
+
+    Also, I was *this* close to naming this method
+    "test_xXxXx420HEADSHOT_noscope_SWAGYOLOxXxXx".
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    response2 = self.oauth_client.request_token_from_refresh_token(
+        self.client,
+        access_token.refresh_token,
+        custom={
+          'scope' : None
+        })
+
+    self.assert_token_success(response2)
+    refresh_data = json.loads(response2.content)
+    self.assertEqual(refresh_data['scope'], self.oauth_client.scope_string)
+
