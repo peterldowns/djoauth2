@@ -722,3 +722,24 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     self.assertEqual(api_response.status_code, 400, api_response.status_code)
     self.assertIn('WWW-Authenticate', api_response)
 
+
+class TestAuthorization(DJOAuth2TestCase):
+  ''' The problem with these is that it requires using `Djano Client`s and other
+  weird magic (dealing with CSRF tokens, 'clicking' buttons, etc. I'm leaving
+  this until last. '''
+  def test_no_scope(self): raise NotImplementedError
+  def test_single_scope(self): raise NotImplementedError
+  def test_multiple_scope(self): raise NotImplementedError
+  def test_with_state(self): raise NotImplementedError
+  def test_reauth_same(self): raise NotImplementedError
+  def test_reauth_subset(self): raise NotImplementedError
+  def test_reauth_superset(self): raise NotImplementedError
+  def test_invalid_scope(self): raise NotImplementedError
+  def test_missing_params(self): raise NotImplementedError
+  def test_mismatched_uri(self): raise NotImplementedError
+  def test_user_decline(self): raise NotImplementedError
+  def test_pass_invalid_uri_param(self): raise NotImplementedError
+  def test_autogrant_subset(self): raise NotImplementedError
+  def test_autogrant_and_prior_grant_subset(self): raise NotImplementedError
+  def test_autogrant_and_prior_grant_supserset(self): raise NotImplementedError
+
