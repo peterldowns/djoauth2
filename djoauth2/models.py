@@ -54,7 +54,7 @@ class AuthorizationCode(models.Model):
   user = models.ForeignKey(User)
   date_created = models.DateTimeField(auto_now_add=True)
   lifetime = models.PositiveIntegerField(
-      default=settings.DJOAUTH2_AUTHORIZATION_CODE_LIFETIME)
+      default=lambda: settings.DJOAUTH2_AUTHORIZATION_CODE_LIFETIME)
   redirect_uri = models.URLField(null=True, blank=True)
   scopes = models.ManyToManyField(Scope, related_name='authorization_codes')
   value = models.CharField(
@@ -85,9 +85,9 @@ class AccessToken(models.Model):
   client = models.ForeignKey(Client)
   date_created = models.DateTimeField(auto_now_add=True)
   lifetime = models.PositiveIntegerField(
-      default=settings.DJOAUTH2_ACCESS_TOKEN_LIFETIME)
+      default=lambda: settings.DJOAUTH2_ACCESS_TOKEN_LIFETIME)
   refreshable = models.BooleanField(
-      default=settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE)
+      default=lambda: settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE)
   refresh_token = models.CharField(
     blank=True,
     db_index=True,
