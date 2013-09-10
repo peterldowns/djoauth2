@@ -127,24 +127,6 @@ class DJOAuth2TestClient(TestClient):
     print 'refresh_token:', repr(self.refresh_token)
     print 'expires in:', repr(self.lifetime)
 
-  def assert_token_success(self, response):
-    self.assertEqual(response.status_code, 200, response.content)
-    # Check the response contents
-    self.assertTrue(self.access_token)
-    self.assertTrue(self.refresh_token)
-    self.assertTrue(self.lifetime)
-
-  def assert_token_failure(self, response, expected_error_code=None):
-    self.assertNotEqual(response.status_code, 200, response.content)
-    if expected_error_code:
-      self.assertEqual(response.status_code, expected_error_code)
-    else:
-      # Should have received a 4XX HTTP status code
-      self.assertTrue(str(response.status_code)[0] == '4')
-    # Check the response contents
-    self.assertIsNone(self.oauth_client.access_token)
-    self.assertIsNone(self.oauth_client.refresh_token)
-    self.assertIsNone(self.oauth_client.expires_in)
 
 
 
@@ -220,6 +202,25 @@ class DJOAuth2TestCase(TestCase):
       raise ValueError("Not a Scope!")
     return scope.delete()
 
+  def assert_token_success(self, response):
+    self.assertEqual(response.status_code, 200, response.content)
+    # Check the response contents
+    self.assertTrue(self.oauth_client.access_token)
+    self.assertTrue(self.oauth_client.refresh_token)
+    self.assertTrue(self.oauth_client.lifetime)
+
+  def assert_token_failure(self, response, expected_error_code=None):
+    self.assertNotEqual(response.status_code, 200, response.content)
+    if expected_error_code:
+      self.assertEqual(response.status_code, expected_error_code)
+    else:
+      # Should have received a 4XX HTTP status code
+      self.assertTrue(str(response.status_code)[0] == '4')
+    # Check the response contents
+    self.assertIsNone(self.oauth_client.access_token)
+    self.assertIsNone(self.oauth_client.refresh_token)
+    self.assertIsNone(self.oauth_client.expires_in)
+
 
 class TestAccessToken(DJOAuth2TestCase):
   def test_pass_no_redirect_defaults_to_registered(self):
@@ -243,5 +244,5 @@ class TestAccessToken(DJOAuth2TestCase):
           'redirect_uri' : None,
         })
 
-    self.oauth_client.assert_token_success(response)
+    self.assert_token_success(response)
 
