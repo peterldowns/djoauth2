@@ -50,15 +50,13 @@ class DJOAuth2TestClient(TestClient):
   def last_response(self):
     return self.history[-1] if self.history else None
 
-  def request_access_token(self,
+  def access_token_request(self,
                            client,
-                           authorization_code_value,
                            custom=None,
                            method='POST',
                            use_ssl=None):
+
     data = {
-        'code': authorization_code_value,
-        'grant_type': 'authorization_code',
         'client_id': client.key,
         'client_secret': client.secret,
         'redirect_uri': client.redirect_uri,
@@ -76,34 +74,31 @@ class DJOAuth2TestClient(TestClient):
     self.load_token_data(response)
     return response
 
-  def request_refresh_token(self,
-                            client,
-                            refresh_token_value,
-                            custom=None,
-                            method='POST',
-                            use_ssl=None):
-    # Respect default ssl settings if no value is passed.
-    if use_ssl is None:
-      use_ssl = self.ssl_only
+  def request_token_from_authcode(self,
+                                  client,
+                                  authorization_code_value,
+                                  **kwargs):
+    custom = kwargs.pop('custom', {})
+    custom.update({
+      'grant_type': 'authorization_code',
+      'code': authorization_code_value,
+    })
+    kwargs['custom'] = custom
+    return self.access_token_request(client, **kwargs)
 
-    data = {
+  def request_token_from_refresh_token(self,
+                                  client,
+                                  refresh_token_value,
+                                  **kwargs):
+
+    custom = kwargs.pop('custom', {})
+    custom.update({
       'refresh_token': refresh_token_value,
       'grant_type': 'refresh_token',
-      'client_id': client.key,
-      'client_secret': client.secret,
-      'scope': self.scope_string or None,
-    }
-    data.update(custom or {})
-    remove_empty_parameters(data)
+    })
+    kwargs['custom'] = custom
+    return self.access_token_request(client, **kwargs)
 
-    # Respect default ssl settings if no value is passed.
-    if use_ssl is None:
-      use_ssl = self.ssl_only
-
-    response = self.post(self.token_endpoint, data=data, **{
-      'wsgi.url_scheme': 'https' if use_ssl else 'http'})
-    self.load_token_data(response)
-    return response
 
   def load_token_data(self, response=None):
     response = response or self.last_response
@@ -121,16 +116,6 @@ class DJOAuth2TestClient(TestClient):
       self.refresh_token = None
       self.lifetime = None
       return None
-
-  def display_response(self, response=None, max_length=10000):
-    response = response or self.last_response
-    print response.status_code
-    print response.headers
-    print response.content[:max_length]
-    print ''
-    print 'access_token:', repr(self.access_token)
-    print 'refresh_token:', repr(self.refresh_token)
-    print 'expires in:', repr(self.lifetime)
 
 
 class DJOAuth2TestCase(TestCase):
@@ -238,7 +223,7 @@ class TestAccessToken(DJOAuth2TestCase):
       })
 
     # Override the default redirect param to not exist.
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
         custom={
@@ -261,7 +246,7 @@ class TestAccessToken(DJOAuth2TestCase):
 
     # Request an authorization token with the same redirect as the
     # authorization code (the OAuth spec requires them to match.)
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
         custom={
@@ -286,7 +271,7 @@ class TestAccessToken(DJOAuth2TestCase):
     different_redirect = 'https://NOTlocu.com'
     self.assertNotEqual(different_redirect, self.client.redirect_uri)
 
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
         custom={
@@ -304,7 +289,7 @@ class TestAccessToken(DJOAuth2TestCase):
 
     authcode = self.create_authorization_code(self.user, self.client)
 
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client, authcode.value, use_ssl=True)
 
     self.assert_token_success(response)
@@ -318,7 +303,7 @@ class TestAccessToken(DJOAuth2TestCase):
 
     authcode = self.create_authorization_code(self.user, self.client)
 
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client, authcode.value, use_ssl=False)
 
     self.assert_token_success(response)
@@ -329,7 +314,7 @@ class TestAccessToken(DJOAuth2TestCase):
 
     authcode = self.create_authorization_code(self.user, self.client)
 
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client, authcode.value, use_ssl=False)
 
     self.assert_token_failure(response)
@@ -341,7 +326,7 @@ class TestAccessToken(DJOAuth2TestCase):
     authcode = self.create_authorization_code(self.user, self.client)
 
     # Override default client_secret param to not exist.
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
         custom={
@@ -363,7 +348,7 @@ class TestAccessToken(DJOAuth2TestCase):
     mismatched_secret = self.client.secret + 'thischangesthevalue'
     self.assertNotEqual(mismatched_secret, self.client.secret)
 
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
         custom={
@@ -387,7 +372,7 @@ class TestAccessToken(DJOAuth2TestCase):
     self.assertNotEqual(default_client_authcode.client.secret,
                         self.client2.secret)
 
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client2, default_client_authcode.value)
 
     self.assert_token_failure(response)
@@ -405,7 +390,7 @@ class TestAccessToken(DJOAuth2TestCase):
     authcode.save()
     self.assertTrue(authcode.is_expired())
 
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client, authcode.value)
 
     self.assert_token_failure(response)
@@ -422,7 +407,7 @@ class TestAccessToken(DJOAuth2TestCase):
     self.assertFalse(
         AuthorizationCode.objects.filter(value=fake_authcode_value).exists())
 
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client, fake_authcode_value)
 
     self.assert_token_failure(response)
@@ -433,7 +418,7 @@ class TestAccessToken(DJOAuth2TestCase):
     self.initialize()
 
     authcode = self.create_authorization_code(self.user, self.client)
-    response = self.oauth_client.request_access_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client, authcode.value, method='GET')
 
     self.assert_token_failure(response)
