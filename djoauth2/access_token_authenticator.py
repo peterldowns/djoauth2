@@ -12,7 +12,9 @@ from djoauth2.models import Scope
 class AccessTokenAuthenticator(object):
   """ Allows easy authentication checking and error response creation.
 
-  See the 'validate' docstring for a usage example.
+  See the 'validate' method's docstring for a usage example. We strongly
+  recommend that you use the 'djoauth2.decorators.oauth_scope' method to
+  protect your API endpoints instead of manually instatiating this object.
   """
 
   def __init__(self, required_scope_names=()):

@@ -24,6 +24,10 @@ def oauth_scope(*scope_names):
   The first argument to the wrapped endpoint will now be an AccessToken
   object. The second argument will be the original HttpRequest, and all
   other parameters will follow.
+
+  We strongly recommend that you use this decorator to protect your API
+  endpoints instead of manually instantiating an AccessTokenAuthenticator
+  object.
   """
   authenticator = AccessTokenAuthenticator(required_scope_names=scope_names)
 
