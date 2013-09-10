@@ -128,8 +128,6 @@ class DJOAuth2TestClient(TestClient):
     print 'expires in:', repr(self.lifetime)
 
 
-
-
 class DJOAuth2TestCase(TestCase):
   fixtures = (
       'auth_user.yaml',
