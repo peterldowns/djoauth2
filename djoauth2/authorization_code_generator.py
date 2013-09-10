@@ -22,6 +22,9 @@ class AuthorizationCodeGenerator(object):
   """ Allows easy authorization request validation, code generation, and
   redirection creation.
 
+  We recommend that you DO NOT use this object, but instead use the
+  'oauth_scope' function to decorate your API endpoints.
+
   Use as part of your authorization page endpoint like so:
 
     >>> def authorization(request):
