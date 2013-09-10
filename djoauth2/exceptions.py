@@ -17,7 +17,7 @@ def get_error_details(exception):
   """
   return {
     'error': getattr(exception, 'error_name', 'invalid_request'),
-    'error_description': exception.message or '(no description available)'
+    'error_description': str(exception) or '(no description available)'
   }
 
 

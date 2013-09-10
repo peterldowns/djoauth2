@@ -86,9 +86,7 @@ def access_token_endpoint(request):
     error_name = getattr(generation_exception,
                          'error_name',
                          'invalid_request')
-    error_description = getattr(generation_exception,
-                                'message',
-                                'Invalid Request.')
+    error_description = str(generation_exception) or 'INvalid Request.'
     response_data = {
         'error':  error_name,
         'error_description': error_description,
