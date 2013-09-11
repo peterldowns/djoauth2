@@ -12,8 +12,8 @@ from djoauth2.models import Scope
 class AccessTokenAuthenticator(object):
   """ Allows easy authentication checking and error response creation.
 
-  See the 'validate' method's docstring for a usage example. We strongly
-  recommend that you use the 'djoauth2.decorators.oauth_scope' method to
+  See the 'validate' method's docstring for a usage example. We STRONGLY
+  RECOMMEND that you use the 'djoauth2.decorators.oauth_scope' method to
   protect your API endpoints instead of manually instatiating this object.
   """
 
@@ -65,7 +65,23 @@ class AccessTokenAuthenticator(object):
     expose_errors = False
 
     try:
-      if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
+      # From http://tools.ietf.org/html/rfc6750#section-1 :
+      #
+      #     This specification defines the use of bearer tokens over HTTP/1.1
+      #     [RFC2616] using Transport Layer Security (TLS) [RFC5246] to access
+      #     protected resources.  TLS is mandatory to implement and use with
+      #     this specification; other specifications may extend this
+      #     specification for use with other protocols.  While designed for use
+      #     with access tokens
+      #
+      # and later, from http://tools.ietf.org/html/rfc6750#section-5.3 :
+      #
+      #    Always use TLS (https):  Clients MUST always use TLS [RFC5246]
+      #    (https) or equivalent transport security when making requests with
+      #    bearer tokens.  Failing to do so exposes the token to numerous
+      #    attacks that could give attackers unintended access.
+      #
+      if not request.is_secure():
         raise InvalidRequest('insecure request: must use TLS')
 
       http_authorization = request.META.get('HTTP_AUTHORIZATION', '')
