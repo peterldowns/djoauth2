@@ -1,5 +1,6 @@
 # coding: utf-8
 
+
 class DJOAuthException(Exception):
   """ Base exception class for all OAuth-related exceptions. """
   error_name = 'invalid_request'
