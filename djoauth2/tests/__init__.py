@@ -52,11 +52,30 @@ class DJOAuth2TestClient(TestClient):
   def last_response(self):
     return self.history[-1] if self.history else None
 
-  def make_api_request(self, access_token, data=None, method='POST'):
+  def make_api_request(self,
+                       access_token,
+                       data=None,
+                       method='POST',
+                       use_ssl=None):
     factory = RequestFactory()
+
+    # Respect default ssl settings if no value is passed.
+    if use_ssl is None:
+      use_ssl = self.ssl_only
+
+
     request_method = getattr(factory, method.lower())
-    api_request = request_method('/url/does/not/matter', data)
+
+    api_request = request_method('/url/does/not/matter', data or {}, **{
+      # From http://codeinthehole.com/writing/testing-https-handling-in-django/
+      'wsgi.url_scheme': 'https' if use_ssl else 'http'})
+
     api_request.META['HTTP_AUTHORIZATION'] = 'Bearer ' + access_token.value
+
+    # Respect default ssl settings if no value is passed.
+    if use_ssl is None:
+      use_ssl = self.ssl_only
+
     return api_request
 
   def access_token_request(self,
@@ -79,6 +98,7 @@ class DJOAuth2TestClient(TestClient):
 
     request_method = getattr(self, method.lower())
     response = request_method(self.token_endpoint, data=data, **{
+      # From http://codeinthehole.com/writing/testing-https-handling-in-django/
       'wsgi.url_scheme': 'https' if use_ssl else 'http'})
     self.load_token_data(response)
     return response
@@ -200,14 +220,14 @@ class DJOAuth2TestCase(TestCase):
     return scope.delete()
 
   def assert_token_success(self, response):
-    self.assertEqual(response.status_code, 200, response.content)
+    self.assertEqual(response.status_code, 200, response)
     # Check the response contents
     self.assertTrue(self.oauth_client.access_token)
     self.assertTrue(self.oauth_client.refresh_token)
     self.assertTrue(self.oauth_client.lifetime)
 
   def assert_token_failure(self, response, expected_error_code=None):
-    self.assertNotEqual(response.status_code, 200, response.content)
+    self.assertNotEqual(response.status_code, 200, response)
     if expected_error_code:
       self.assertEqual(response.status_code, expected_error_code)
     else:
@@ -289,37 +309,9 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
-  def test_secure_request_succeeds_when_ssl_not_required(self):
-    """ If the OAuth client has registered a secure redirect uri, and SSL is
-    not required by the server, then requests will still succeed.
-    """
+  def test_insecure_request_fails(self):
+    """ SSL is required when making requests to the access token endpoint. """
     self.initialize()
-    settings.DJOAUTH2_SSL_ONLY = False
-
-    authcode = self.create_authorization_code(self.user, self.client)
-
-    response = self.oauth_client.request_token_from_authcode(
-        self.client, authcode.value, use_ssl=True)
-
-    self.assert_token_success(response)
-
-  def test_insecure_request_succeeds_when_ssl_not_required(self):
-    """ If the OAuth client has registered an insecure redirect uri, and
-    SSL is not required by the server, then requests will succeed.
-    """
-    self.initialize()
-    settings.DJOAUTH2_SSL_ONLY = False
-
-    authcode = self.create_authorization_code(self.user, self.client)
-
-    response = self.oauth_client.request_token_from_authcode(
-        self.client, authcode.value, use_ssl=False)
-
-    self.assert_token_success(response)
-
-  def test_insecure_request_fails_when_ssl_required(self):
-    self.initialize()
-    settings.DJOAUTH2_SSL_ONLY = True
 
     authcode = self.create_authorization_code(self.user, self.client)
 
@@ -651,7 +643,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     api_endpoint = make_oauth_protected_endpoint('verify')
 
     response = api_endpoint(api_request)
-    self.assertIs(response, True)
+    self.assertIs(response, True, response)
 
   def test_scope_superset(self):
     """ A client with multiple scopes sould have access to all endpoints
@@ -665,7 +657,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     api_endpoint = make_oauth_protected_endpoint('verify')
 
     response = api_endpoint(api_request)
-    self.assertIs(response, True)
+    self.assertIs(response, True, response)
 
   def test_scope_subset(self):
     """ A client without access to the scope protecting an endpoint should
@@ -679,7 +671,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     api_endpoint = make_oauth_protected_endpoint('verify', 'autologin')
 
     api_response = api_endpoint(api_request)
-    self.assertEqual(api_response.status_code, 403, api_response.status_code)
+    self.assertEqual(api_response.status_code, 403, api_response)
     self.assertIn('WWW-Authenticate', api_response)
 
 
@@ -698,7 +690,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     api_endpoint = make_oauth_protected_endpoint('verify')
 
     api_response = api_endpoint(api_request)
-    self.assertEqual(api_response.status_code, 401, api_response.status_code)
+    self.assertEqual(api_response.status_code, 401, api_response)
     self.assertIn('WWW-Authenticate', api_response)
 
   def test_missing_authentication_header(self):
@@ -719,6 +711,6 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     api_endpoint = make_oauth_protected_endpoint('verify')
 
     api_response = api_endpoint(api_request)
-    self.assertEqual(api_response.status_code, 400, api_response.status_code)
+    self.assertEqual(api_response.status_code, 400, api_response)
     self.assertIn('WWW-Authenticate', api_response)
 
