@@ -17,13 +17,18 @@ from djoauth2.models import Scope
 # critical part of the authorization endpoint implementation, but it does allow
 # for much more convenience for users (they will not need to re-authorize.)
 
-
+# TODO(peter): implement a helper method for easily creating these endpoints so
+# that users do not need to interact with this object, which is complicated and
+# painful. Alternatively, simplify this object's usage API.
+#
+#     def make_auth_endpoint(redirect_uri,
+#                            endpoint_uri,
+#                            authorization_template,
+#                            past_socpe_authorized)
+#
 class AuthorizationCodeGenerator(object):
   """ Allows easy authorization request validation, code generation, and
   redirection creation.
-
-  We recommend that you DO NOT use this object, but instead use the
-  'oauth_scope' function to decorate your API endpoints.
 
   Use as part of your authorization page endpoint like so:
 
