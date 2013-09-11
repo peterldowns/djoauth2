@@ -22,8 +22,15 @@ def access_token_endpoint(request):
   For further documentation, read http://tools.ietf.org/html/rfc6749#section-3.2
   """
   try:
-    if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
-      raise InvalidRequest('all requests must use TLS')
+    # From http://tools.ietf.org/html/rfc6749#section-3.2 :
+    #
+    #     Since requests to the token endpoint result in the transmission of
+    #     clear-text credentials (in the HTTP request and response), the
+    #     authorization server MUST require the use of TLS as described in
+    #     Section 1.6 when sending requests to the token endpoint.
+    #
+    if not request.is_secure():
+      raise InvalidRequest('all token requests must use TLS')
 
     # From http://tools.ietf.org/html/rfc6749#section-3.2 :
     #
@@ -33,8 +40,83 @@ def access_token_endpoint(request):
     if not request.method == 'POST':
       raise InvalidRequest('all posts must use POST')
 
-    # Must include client authentication in requests to the token endpoint:
-    # http://tools.ietf.org/html/rfc6749#section-3.2.1 .
+    # TODO(peter): current Client authentication takes place as decribed
+    # by the second part of http://tools.ietf.org/html/rfc6749#section-2.3.1 :
+    #
+    #     Alternatively, the authorization server MAY support including the
+    #     client credentials in the request-body using the following parameters:
+    #
+    #     client_id
+    #           REQUIRED.  The client identifier issued to the client during
+    #           the registration process described by Section 2.2.
+    #
+    #     client_secret
+    #           REQUIRED.  The client secret.  The client MAY omit the
+    #           parameter if the client secret is an empty string.
+    #
+    #     Including the client credentials in the request-body using the two
+    #     parameters is NOT RECOMMENDED and SHOULD be limited to clients unable
+    #     to directly utilize the HTTP Basic authentication scheme (or other
+    #     password-based HTTP authentication schemes).  The parameters can only
+    #     be transmitted in the request-body and MUST NOT be included in the
+    #     request URI.
+    #
+    # which is NOT RECOMMENDED. Instead, the server should implement
+    # HTTP Basic Authentication ( http://tools.ietf.org/html/rfc2617#section-2 )
+    # as described by http://tools.ietf.org/html/rfc6749#section-2.3.1 :
+    #
+    #     Clients in possession of a client password MAY use the HTTP Basic
+    #     authentication scheme as defined in [RFC2617] to authenticate with
+    #     the authorization server.  The client identifier is encoded using the
+    #     "application/x-www-form-urlencoded" encoding algorithm per Appendix
+    #     B, and the encoded value is used as the username; the client password
+    #     is encoded using the same algorithm and used as the password.  The
+    #     authorization server MUST support the HTTP Basic authentication
+    #     scheme for authenticating clients that were issued a client password.
+    #
+    # by including an 'Authorization' header like so:
+    #
+    #      Authorization: Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3
+    #
+    # where 'czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3' is the result of
+    #
+    #     base64encode('{client_id}:{client_secret}')
+    #
+
+    # TODO(peter): check that 'client_id' and 'client_secret' parameters are
+    # not included in the request URI (GET parameters), as specified by
+    # http://tools.ietf.org/html/rfc6749#section-2.3.1 :
+    #
+    #     The parameters can only be transmitted in the request-body and MUST
+    #     NOT be included in the request URI.
+    #
+
+    # TODO(peter): somehow implement the anti-brute-force requirement specified
+    # by http://tools.ietf.org/html/rfc6749#section-2.3.1 :
+    #
+    #     Since this client authentication method involves a password, the
+    #     authorization server MUST protect any endpoint utilizing it against
+    #     brute force attacks.
+    #
+
+    # TODO(peter): enforce limit to a single authentication method as required
+    # by http://tools.ietf.org/html/rfc6749#section-2.3 :
+    #
+    #     The client MUST NOT use more than one authentication method in each
+    #     request.
+    #
+
+    # From http://tools.ietf.org/html/rfc6749#section-3.2.1 :
+    #
+    #     A client MAY use the "client_id" request parameter to identify itself
+    #     when sending requests to the token endpoint.  In the
+    #     "authorization_code" "grant_type" request to the token endpoint, an
+    #     unauthenticated client MUST send its "client_id" to prevent itself
+    #     from inadvertently accepting a code intended for a client with a
+    #     different "client_id".  This protects the client from substitution of
+    #     the authentication code. (It provides no additional security for the
+    #     protected resource.)
+    #
     client_id = request.POST.get('client_id')
     if not client_id:
       raise InvalidRequest('no "client_id" provided')
