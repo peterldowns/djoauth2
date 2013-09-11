@@ -206,7 +206,13 @@ class AuthorizationCodeGenerator(object):
 
     validation_error = AccessDenied('user denied the request')
     response_params = get_error_details(validation_error)
-    if settings.DJOAUTH2_REQUIRE_STATE:
+    # From http://tools.ietf.org/html/rfc6749#section-4.1.2.1 :
+    #
+    #     REQUIRED if the "state" parameter was present in the client
+    #     authorization request.  The exact value received from the
+    #     client.
+    #
+    if self.state is not None:
       response_params['state'] = self.state
     return HttpResponseRedirect(
         update_parameters(self.redirect_uri, response_params))
@@ -229,7 +235,13 @@ class AuthorizationCodeGenerator(object):
     new_authorization_code.save()
 
     response_params = {'code': new_authorization_code.value}
-    if settings.DJOAUTH2_REQUIRE_STATE:
+    # From http://tools.ietf.org/html/rfc6749#section-4.1.2 :
+    #
+    #     REQUIRED if the "state" parameter was present in the client
+    #     authorization request.  The exact value received from the
+    #     client.
+    #
+    if self.state is not None:
       response_params['state'] = self.state
     return HttpResponseRedirect(
         update_parameters(self.redirect_uri, response_params))
