@@ -6,6 +6,7 @@ from random import random
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.http import HttpRequest
 from django.test import Client as TestClient
 from django.test import TestCase
 from django.test.client import RequestFactory
@@ -15,6 +16,7 @@ from djoauth2.models import AccessToken
 from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
 from djoauth2.models import Scope
+from djoauth2.signals import refresh_token_used_after_invalidation
 
 def remove_empty_parameters(params):
   for key, value in params.items():
@@ -470,7 +472,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     "test_xXxXx420HEADSHOT_noscope_SWAGYOLOxXxXx".
     """
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
 
     access_token = self.create_access_token(self.user, self.client)
 
@@ -491,7 +492,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     RefreshToken/AccessToken pair should succeed.
     """
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
 
     access_token_1 = self.create_access_token(self.user, self.client)
     scope_string_1 = self.oauth_client.scope_string
@@ -515,7 +515,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     """
     scope_list_1 = ['verify', 'autologin']
     self.initialize(scope_names=scope_list_1)
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
 
     access_token_1 = self.create_access_token(self.user, self.client)
     scope_string_1 = self.oauth_client.scope_string
@@ -539,7 +538,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     """
     scope_list_1 = ['verify', 'autologin']
     self.initialize(scope_names=scope_list_1)
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
 
     access_token_1 = self.create_access_token(self.user, self.client)
     scope_string_1 = self.oauth_client.scope_string
@@ -558,7 +556,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
 
   def test_request_with_nonexistent_refresh_token_(self):
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
 
     refresh_token_value = 'doesnotexist'
     self.assertFalse(
@@ -574,7 +571,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     "grant_type" parameter that isn't "refresh_token" will fail.
     """
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
 
     access_token = self.create_access_token(self.user, self.client)
 
@@ -590,7 +586,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
   def test_request_with_mismatched_client(self):
     """ One client ay not refresh another client's token. """
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
 
     default_client_access_token = self.create_access_token(
         self.user, self.client)
@@ -605,7 +600,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
-  def test_multiple_access_same_token(self):
+  def test_multiple_use_of_refresh_token(self):
     """ Each refresh token can only be used once. Attempting to refresh with a
     token that has already been used will result in a failure.
 
@@ -620,7 +615,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
 
     """
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
 
     access_token_1 = self.create_access_token(self.user, self.client)
 
@@ -644,6 +638,43 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     self.assertEqual(existing_token_filter[0].pk, access_token_1.pk)
     self.assertTrue(existing_token_filter[0].invalidated)
 
+  def test_multiple_use_of_refresh_token_fires_signal(self):
+    """ Our implementation should fire a
+    'refresh_token_used_after_invalidation' signal that users may listen to and
+    use to alert Clients that their refresh tokens have been accessed more than
+    once. This is as recommendd by
+    http://tools.ietf.org/html/rfc6749#section-10.4 :
+
+         If a refresh token is compromised and subsequently used by both the
+         attacker and the legitimate client, one of them will present an
+         invalidated refresh token, which will inform the authorization server
+         of the breach.
+
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+
+    access_token = self.create_access_token(self.user, self.client)
+    access_token.invalidate()
+    self.assertTrue(access_token.invalidated)
+
+    self.received_signal = False
+
+    def invalidated_refresh_token_use_callback(signal,
+                                               sender,
+                                               access_token,
+                                               request):
+      self.assertEqual(access_token.pk, access_token.pk)
+      self.assertIsInstance(request, HttpRequest)
+      self.received_signal = True
+
+    refresh_token_used_after_invalidation.connect(
+        invalidated_refresh_token_use_callback)
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client, access_token.refresh_token)
+
+    self.assert_token_failure(response)
+    self.assertTrue(self.received_signal)
 
 
 def make_oauth_protected_endpoint(*args, **kwargs):

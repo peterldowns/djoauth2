@@ -10,6 +10,7 @@ from djoauth2.models import AccessToken
 from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
 from djoauth2.models import Scope
+from djoauth2.signals import refresh_token_used_after_invalidation
 
 @csrf_exempt
 def access_token_endpoint(request):
@@ -263,7 +264,6 @@ def generate_access_token_from_refresh_token(request, client):
 
   try:
     existing_access_token = AccessToken.objects.get(
-        invalidated=False,
         refresh_token=refresh_token_value,
         client=client)
   except AccessToken.DoesNotExist:
@@ -275,6 +275,13 @@ def generate_access_token_from_refresh_token(request, client):
   # the Client. See:
   #   * https://docs.djangoproject.com/en/dev/topics/signals/#defining-and-sending-signals
   #   * http://tools.ietf.org/html/rfc6749#section-10.4
+  if existing_access_token.invalidated:
+    refresh_token_used_after_invalidation.send(
+        sender='djoauth2',
+        access_token=existing_access_token,
+        request=request)
+    raise InvalidGrant('"{}" is not a valid "refresh_token"'.format(
+      refresh_token_value))
 
   if not existing_access_token.refreshable:
     raise InvalidGrant('access token is not refreshable')
