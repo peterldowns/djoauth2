@@ -1,0 +1,290 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>djoauth2.access_token_authenticator &mdash; DJOAuth2 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="DJOAuth2 0.1.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">DJOAuth2 0.1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for djoauth2.access_token_authenticator</h1><div class="highlight"><pre>
+<span class="c"># coding: utf-8</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="kn">import</span> <span class="n">HttpResponse</span>
+
+<span class="kn">from</span> <span class="nn">djoauth2.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">djoauth2.exceptions</span> <span class="kn">import</span> <span class="n">DJOAuthException</span>
+<span class="kn">from</span> <span class="nn">djoauth2.exceptions</span> <span class="kn">import</span> <span class="n">get_error_details</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">AccessToken</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">Scope</span>
+
+<div class="viewcode-block" id="AccessTokenAuthenticator"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.access_token_authenticator.AccessTokenAuthenticator">[docs]</a><span class="k">class</span> <span class="nc">AccessTokenAuthenticator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Allows easy authentication checking and error response creation.</span>
+
+<span class="sd">  See the &#39;validate&#39; method&#39;s docstring for a usage example. We STRONGLY</span>
+<span class="sd">  RECOMMEND that you use the &#39;djoauth2.decorators.oauth_scope&#39; method to</span>
+<span class="sd">  protect your API endpoints instead of manually instatiating this object.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">required_scope_names</span><span class="o">=</span><span class="p">()):</span>
+    <span class="sd">&quot;&quot;&quot; Store the names of the scopes that will be checked. &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">required_scope_names</span> <span class="o">=</span> <span class="n">required_scope_names</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">required_scope_names</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">Scope</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;Scope with name &quot;{}&quot; does not exist.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="AccessTokenAuthenticator.validate"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.access_token_authenticator.AccessTokenAuthenticator.validate">[docs]</a>  <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Checks a request for proper authentication details.</span>
+
+<span class="sd">    Returns a tuple of (access_token, error_response_arguments), which</span>
+<span class="sd">    are described below.</span>
+
+<span class="sd">    @access_token: an AccessToken if the request is successfully authenticated,</span>
+<span class="sd">        otherwise None.</span>
+<span class="sd">    @error_response_arguments: None if the request is successfully</span>
+<span class="sd">        authenticated, otherwise a tuple of arguments to be used in a call to</span>
+<span class="sd">        the &#39;make_error_response&#39; method.</span>
+
+<span class="sd">    For example, to restrict access to a given endpoint:</span>
+
+<span class="sd">        &gt;&gt;&gt; def foo_bar_resource(request, *args, **kwargs):</span>
+<span class="sd">        &gt;&gt;&gt;   authenticator = AccessTokenAuthenticator(</span>
+<span class="sd">        &gt;&gt;&gt;       required_scope_names=(&#39;foo&#39;, &#39;bar&#39;))</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt;   access_token, error_args = authenticator.validate(request)</span>
+<span class="sd">        &gt;&gt;&gt;   if not access_token:</span>
+<span class="sd">        &gt;&gt;&gt;     return authenticator.make_error_response(*error_args)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt;   # ... can now return use access_token</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># From http://tools.ietf.org/html/rfc6750#section-3.1 :</span>
+    <span class="c">#</span>
+    <span class="c">#        If the request lacks any authentication information (e.g., the</span>
+    <span class="c">#        client was unaware that authentication is necessary or attempted</span>
+    <span class="c">#        using an unsupported authentication method), the resource server</span>
+    <span class="c">#        SHOULD NOT include an error code or other error information.</span>
+    <span class="c">#</span>
+    <span class="c"># In the case that the request fails to validate, this flag will</span>
+    <span class="c"># be returned and should be passed to the &#39;make_error_response&#39; method</span>
+    <span class="c"># in order to comply with the specification and restrict error information.</span>
+    <span class="n">expose_errors</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="k">try</span><span class="p">:</span>
+      <span class="c"># From http://tools.ietf.org/html/rfc6750#section-1 :</span>
+      <span class="c">#</span>
+      <span class="c">#     This specification defines the use of bearer tokens over HTTP/1.1</span>
+      <span class="c">#     [RFC2616] using Transport Layer Security (TLS) [RFC5246] to access</span>
+      <span class="c">#     protected resources.  TLS is mandatory to implement and use with</span>
+      <span class="c">#     this specification; other specifications may extend this</span>
+      <span class="c">#     specification for use with other protocols.  While designed for use</span>
+      <span class="c">#     with access tokens</span>
+      <span class="c">#</span>
+      <span class="c"># and later, from http://tools.ietf.org/html/rfc6750#section-5.3 :</span>
+      <span class="c">#</span>
+      <span class="c">#    Always use TLS (https):  Clients MUST always use TLS [RFC5246]</span>
+      <span class="c">#    (https) or equivalent transport security when making requests with</span>
+      <span class="c">#    bearer tokens.  Failing to do so exposes the token to numerous</span>
+      <span class="c">#    attacks that could give attackers unintended access.</span>
+      <span class="c">#</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">is_secure</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;insecure request: must use TLS&#39;</span><span class="p">)</span>
+
+      <span class="n">http_authorization</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">META</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;HTTP_AUTHORIZATION&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">http_authorization</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;missing HTTP_AUTHORIZATION header&#39;</span><span class="p">)</span>
+
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">auth_method</span><span class="p">,</span> <span class="n">auth_value</span> <span class="o">=</span> <span class="n">http_authorization</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;malformed HTTP_AUTHORIZATION header&#39;</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">auth_method</span> <span class="o">!=</span> <span class="s">&#39;Bearer&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;authentication method is not &quot;Bearer&quot;&#39;</span><span class="p">)</span>
+
+      <span class="c"># Used in the case that the request does not validate. See comment above.</span>
+      <span class="c"># At this point in the validation, it is certain that the Client</span>
+      <span class="c"># attempted to authenticate via the &#39;bearer&#39; method.</span>
+      <span class="n">expose_errors</span> <span class="o">=</span> <span class="bp">True</span>
+
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">access_token</span> <span class="o">=</span> <span class="n">AccessToken</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">auth_value</span><span class="p">)</span>
+      <span class="k">except</span> <span class="n">AccessToken</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidToken</span><span class="p">(</span><span class="s">&#39;access token does not exist&#39;</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">access_token</span><span class="o">.</span><span class="n">is_expired</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">InvalidToken</span><span class="p">(</span><span class="s">&#39;access token is expired&#39;</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">access_token</span><span class="o">.</span><span class="n">has_scope</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">required_scope_names</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InsufficientScope</span><span class="p">(</span><span class="s">&#39;access token has insufficient scope&#39;</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="p">(</span><span class="n">access_token</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="n">AuthenticationException</span> <span class="k">as</span> <span class="n">validation_exception</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="p">(</span><span class="n">validation_exception</span><span class="p">,</span> <span class="n">expose_errors</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="AccessTokenAuthenticator.make_error_response"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.access_token_authenticator.AccessTokenAuthenticator.make_error_response">[docs]</a>  <span class="k">def</span> <span class="nf">make_error_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">validation_exception</span><span class="p">,</span> <span class="n">expose_errors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return an appropriate response on authentication failure.</span>
+
+<span class="sd">    Read the specification: http://tools.ietf.org/html/rfc6750#section-3.1 .</span>
+
+<span class="sd">    In case of an error, the specification only details the inclusion of the</span>
+<span class="sd">    &#39;WWW-Authenticate&#39; header. Additionally, when allowed by the specification,</span>
+<span class="sd">    we respond with error details formatted in JSON in the body of the</span>
+<span class="sd">    response.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">authenticate_header</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;Bearer realm=&quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">DJOAUTH2_REALM</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">expose_errors</span><span class="p">:</span>
+      <span class="n">response</span> <span class="o">=</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+      <span class="n">response</span><span class="p">[</span><span class="s">&#39;WWW-Authenticate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">authenticate_header</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">response</span>
+
+    <span class="n">status_code</span> <span class="o">=</span> <span class="mi">401</span>
+    <span class="n">error_details</span> <span class="o">=</span> <span class="n">get_error_details</span><span class="p">(</span><span class="n">validation_exception</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">validation_exception</span><span class="p">,</span> <span class="n">InvalidRequest</span><span class="p">):</span>
+      <span class="n">status_code</span> <span class="o">=</span> <span class="mi">400</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">validation_exception</span><span class="p">,</span> <span class="n">InvalidToken</span><span class="p">):</span>
+      <span class="n">status_code</span> <span class="o">=</span> <span class="mi">401</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">validation_exception</span><span class="p">,</span> <span class="n">InsufficientScope</span><span class="p">):</span>
+      <span class="n">error_details</span><span class="p">[</span><span class="s">&#39;scope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required_scope_names</span><span class="p">)</span>
+      <span class="n">status_code</span> <span class="o">=</span> <span class="mi">403</span>
+
+    <span class="c"># TODO(peter): should we return response details as JSON? This is not</span>
+    <span class="c"># touched upon by the spec and may limit use of this library.  Many</span>
+    <span class="c"># programmers use other transport languaes such as YAML or XML. All of the</span>
+    <span class="c"># error information is already included in the headers.</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">error_details</span><span class="p">),</span>
+                            <span class="n">content_type</span><span class="o">=</span><span class="s">&#39;application/json&#39;</span><span class="p">,</span>
+                            <span class="n">status</span><span class="o">=</span><span class="n">status_code</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">error_details</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+      <span class="n">authenticate_header</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;{}=&quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+
+    <span class="n">response</span><span class="p">[</span><span class="s">&#39;WWW-Authenticate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">authenticate_header</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">response</span>
+
+</div></div>
+<div class="viewcode-block" id="AuthenticationException"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.access_token_authenticator.AuthenticationException">[docs]</a><span class="k">class</span> <span class="nc">AuthenticationException</span><span class="p">(</span><span class="n">DJOAuthException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Base class for exceptions related to API request authentication.</span>
+
+<span class="sd">  Read the Bearer Token specification for more details:</span>
+<span class="sd">    * http://tools.ietf.org/html/rfc6750#section-3.1</span>
+<span class="sd">    * http://tools.ietf.org/html/rfc6750#section-6.2</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">pass</span>
+
+</div>
+<div class="viewcode-block" id="InvalidRequest"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.access_token_authenticator.InvalidRequest">[docs]</a><span class="k">class</span> <span class="nc">InvalidRequest</span><span class="p">(</span><span class="n">AuthenticationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The request is missing a required parameter, includes an unsupported</span>
+<span class="sd">  parameter or parameter value, repeats the same parameter, uses more than one</span>
+<span class="sd">  method for including an access token, or is otherwise malformed. The</span>
+<span class="sd">  resource server SHOULD respond with the HTTP 400 (Bad Request) status code.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;invalid_request&#39;</span>
+
+</div>
+<div class="viewcode-block" id="InvalidToken"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.access_token_authenticator.InvalidToken">[docs]</a><span class="k">class</span> <span class="nc">InvalidToken</span><span class="p">(</span><span class="n">AuthenticationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The access token provided is expired, revoked, malformed, or invalid for</span>
+<span class="sd">  other reasons. The resource SHOULD respond with the HTTP 401 (Unauthorized)</span>
+<span class="sd">  status code. The client MAY request a new access token and retry the</span>
+<span class="sd">  protected resource request.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;invalid_token&#39;</span>
+
+</div>
+<div class="viewcode-block" id="InsufficientScope"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.access_token_authenticator.InsufficientScope">[docs]</a><span class="k">class</span> <span class="nc">InsufficientScope</span><span class="p">(</span><span class="n">AuthenticationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The request requires higher privileges than provided by the access token.</span>
+<span class="sd">  The resource server SHOULD respond with the HTTP 403 (Forbidden) status code</span>
+<span class="sd">  and MAY include the &quot;scope&quot; attribute with the scope necessary to access the</span>
+<span class="sd">  protected resource.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;insufficient_scope&#39;</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">DJOAuth2 0.1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Peter Downs.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

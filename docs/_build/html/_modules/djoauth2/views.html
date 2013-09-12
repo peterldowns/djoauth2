@@ -1,0 +1,498 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>djoauth2.views &mdash; DJOAuth2 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="DJOAuth2 0.1.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">DJOAuth2 0.1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for djoauth2.views</h1><div class="highlight"><pre>
+<span class="c"># coding: utf-8</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="kn">import</span> <span class="n">HttpResponse</span>
+<span class="kn">from</span> <span class="nn">django.views.decorators.csrf</span> <span class="kn">import</span> <span class="n">csrf_exempt</span>
+
+<span class="kn">from</span> <span class="nn">djoauth2.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">djoauth2.exceptions</span> <span class="kn">import</span> <span class="n">DJOAuthException</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">AccessToken</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">AuthorizationCode</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">Client</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">Scope</span>
+
+<span class="nd">@csrf_exempt</span>
+<div class="viewcode-block" id="access_token_endpoint"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.access_token_endpoint">[docs]</a><span class="k">def</span> <span class="nf">access_token_endpoint</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Generates AccessTokens if provided with sufficient authorization.</span>
+
+<span class="sd">  This endpoint only supports two grant types:</span>
+<span class="sd">    * authorization_code: http://tools.ietf.org/html/rfc6749#section-4.1</span>
+<span class="sd">    * refresh_token: http://tools.ietf.org/html/rfc6749#section-6</span>
+
+<span class="sd">  For further documentation, read http://tools.ietf.org/html/rfc6749#section-3.2</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="c"># From http://tools.ietf.org/html/rfc6749#section-3.2 :</span>
+    <span class="c">#</span>
+    <span class="c">#     Since requests to the token endpoint result in the transmission of</span>
+    <span class="c">#     clear-text credentials (in the HTTP request and response), the</span>
+    <span class="c">#     authorization server MUST require the use of TLS as described in</span>
+    <span class="c">#     Section 1.6 when sending requests to the token endpoint.</span>
+    <span class="c">#</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">is_secure</span><span class="p">():</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;all token requests must use TLS&#39;</span><span class="p">)</span>
+
+    <span class="c"># From http://tools.ietf.org/html/rfc6749#section-3.2 :</span>
+    <span class="c">#</span>
+    <span class="c">#     The client MUST use the HTTP &quot;POST&quot; method when making access token</span>
+    <span class="c">#     requests.</span>
+    <span class="c">#</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;all posts must use POST&#39;</span><span class="p">)</span>
+
+    <span class="c"># TODO(peter): current Client authentication takes place as decribed</span>
+    <span class="c"># by the second part of http://tools.ietf.org/html/rfc6749#section-2.3.1 :</span>
+    <span class="c">#</span>
+    <span class="c">#     Alternatively, the authorization server MAY support including the</span>
+    <span class="c">#     client credentials in the request-body using the following parameters:</span>
+    <span class="c">#</span>
+    <span class="c">#     client_id</span>
+    <span class="c">#           REQUIRED.  The client identifier issued to the client during</span>
+    <span class="c">#           the registration process described by Section 2.2.</span>
+    <span class="c">#</span>
+    <span class="c">#     client_secret</span>
+    <span class="c">#           REQUIRED.  The client secret.  The client MAY omit the</span>
+    <span class="c">#           parameter if the client secret is an empty string.</span>
+    <span class="c">#</span>
+    <span class="c">#     Including the client credentials in the request-body using the two</span>
+    <span class="c">#     parameters is NOT RECOMMENDED and SHOULD be limited to clients unable</span>
+    <span class="c">#     to directly utilize the HTTP Basic authentication scheme (or other</span>
+    <span class="c">#     password-based HTTP authentication schemes).  The parameters can only</span>
+    <span class="c">#     be transmitted in the request-body and MUST NOT be included in the</span>
+    <span class="c">#     request URI.</span>
+    <span class="c">#</span>
+    <span class="c"># which is NOT RECOMMENDED. Instead, the server should implement</span>
+    <span class="c"># HTTP Basic Authentication ( http://tools.ietf.org/html/rfc2617#section-2 )</span>
+    <span class="c"># as described by http://tools.ietf.org/html/rfc6749#section-2.3.1 :</span>
+    <span class="c">#</span>
+    <span class="c">#     Clients in possession of a client password MAY use the HTTP Basic</span>
+    <span class="c">#     authentication scheme as defined in [RFC2617] to authenticate with</span>
+    <span class="c">#     the authorization server.  The client identifier is encoded using the</span>
+    <span class="c">#     &quot;application/x-www-form-urlencoded&quot; encoding algorithm per Appendix</span>
+    <span class="c">#     B, and the encoded value is used as the username; the client password</span>
+    <span class="c">#     is encoded using the same algorithm and used as the password.  The</span>
+    <span class="c">#     authorization server MUST support the HTTP Basic authentication</span>
+    <span class="c">#     scheme for authenticating clients that were issued a client password.</span>
+    <span class="c">#</span>
+    <span class="c"># by including an &#39;Authorization&#39; header like so:</span>
+    <span class="c">#</span>
+    <span class="c">#      Authorization: Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3</span>
+    <span class="c">#</span>
+    <span class="c"># where &#39;czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3&#39; is the result of</span>
+    <span class="c">#</span>
+    <span class="c">#     base64encode(&#39;{client_id}:{client_secret}&#39;)</span>
+    <span class="c">#</span>
+
+    <span class="c"># TODO(peter): check that &#39;client_id&#39; and &#39;client_secret&#39; parameters are</span>
+    <span class="c"># not included in the request URI (GET parameters), as specified by</span>
+    <span class="c"># http://tools.ietf.org/html/rfc6749#section-2.3.1 :</span>
+    <span class="c">#</span>
+    <span class="c">#     The parameters can only be transmitted in the request-body and MUST</span>
+    <span class="c">#     NOT be included in the request URI.</span>
+    <span class="c">#</span>
+
+    <span class="c"># TODO(peter): somehow implement the anti-brute-force requirement specified</span>
+    <span class="c"># by http://tools.ietf.org/html/rfc6749#section-2.3.1 :</span>
+    <span class="c">#</span>
+    <span class="c">#     Since this client authentication method involves a password, the</span>
+    <span class="c">#     authorization server MUST protect any endpoint utilizing it against</span>
+    <span class="c">#     brute force attacks.</span>
+    <span class="c">#</span>
+
+    <span class="c"># TODO(peter): enforce limit to a single authentication method as required</span>
+    <span class="c"># by http://tools.ietf.org/html/rfc6749#section-2.3 :</span>
+    <span class="c">#</span>
+    <span class="c">#     The client MUST NOT use more than one authentication method in each</span>
+    <span class="c">#     request.</span>
+    <span class="c">#</span>
+
+    <span class="c"># From http://tools.ietf.org/html/rfc6749#section-3.2.1 :</span>
+    <span class="c">#</span>
+    <span class="c">#     A client MAY use the &quot;client_id&quot; request parameter to identify itself</span>
+    <span class="c">#     when sending requests to the token endpoint.  In the</span>
+    <span class="c">#     &quot;authorization_code&quot; &quot;grant_type&quot; request to the token endpoint, an</span>
+    <span class="c">#     unauthenticated client MUST send its &quot;client_id&quot; to prevent itself</span>
+    <span class="c">#     from inadvertently accepting a code intended for a client with a</span>
+    <span class="c">#     different &quot;client_id&quot;.  This protects the client from substitution of</span>
+    <span class="c">#     the authentication code. (It provides no additional security for the</span>
+    <span class="c">#     protected resource.)</span>
+    <span class="c">#</span>
+    <span class="n">client_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;client_id&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">client_id</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;no &quot;client_id&quot; provided&#39;</span><span class="p">)</span>
+
+    <span class="n">client_secret</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;client_secret&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">client_secret</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;no &quot;client_secret&quot; provided&quot;&#39;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">client_id</span><span class="p">,</span> <span class="n">secret</span><span class="o">=</span><span class="n">client_secret</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">Client</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidClient</span><span class="p">(</span><span class="s">&#39;client authentication failed&#39;</span><span class="p">)</span>
+
+    <span class="c"># The two supported grant types</span>
+    <span class="n">grant_type</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;grant_type&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">grant_type</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;no &quot;grant_type&quot; provided&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">grant_type</span> <span class="o">==</span> <span class="s">&#39;authorization_code&#39;</span><span class="p">:</span>
+      <span class="n">access_token</span> <span class="o">=</span> <span class="n">generate_access_token_from_authorization_code</span><span class="p">(</span><span class="n">request</span><span class="p">,</span>
+                                                                   <span class="n">client</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">grant_type</span> <span class="o">==</span> <span class="s">&#39;refresh_token&#39;</span><span class="p">:</span>
+      <span class="n">access_token</span> <span class="o">=</span> <span class="n">generate_access_token_from_refresh_token</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">UnsupportedGrantType</span><span class="p">(</span>
+          <span class="s">&#39;&quot;{}&quot; is not a supported &quot;grant_type&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">grant_type</span><span class="p">))</span>
+
+    <span class="c"># Successful response documentation:</span>
+    <span class="c"># http://tools.ietf.org/html/rfc6749#section-5.1</span>
+    <span class="n">response_data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">&#39;access_token&#39;</span><span class="p">:</span> <span class="n">access_token</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="s">&#39;expires_in&#39;</span><span class="p">:</span> <span class="n">access_token</span><span class="o">.</span><span class="n">lifetime</span><span class="p">,</span>
+        <span class="s">&#39;token_type&#39;</span><span class="p">:</span> <span class="s">&#39;bearer&#39;</span><span class="p">,</span> <span class="c"># http://tools.ietf.org/html/rfc6749#section-7.1</span>
+        <span class="s">&#39;scope&#39;</span><span class="p">:</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">access_token</span><span class="o">.</span><span class="n">get_scope_names_set</span><span class="p">()),</span>
+      <span class="p">}</span>
+    <span class="k">if</span> <span class="n">access_token</span><span class="o">.</span><span class="n">refreshable</span><span class="p">:</span>
+      <span class="n">response_data</span><span class="p">[</span><span class="s">&#39;refresh_token&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">access_token</span><span class="o">.</span><span class="n">refresh_token</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">response_data</span><span class="p">),</span>
+                            <span class="n">content_type</span><span class="o">=</span><span class="s">&#39;application/json&#39;</span><span class="p">)</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">response</span><span class="p">[</span><span class="s">&#39;Cache-Control&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;no-store&#39;</span>
+    <span class="n">response</span><span class="p">[</span><span class="s">&#39;Pragma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;no-cache&#39;</span>
+    <span class="k">return</span> <span class="n">response</span>
+
+  <span class="k">except</span> <span class="n">AccessTokenException</span> <span class="k">as</span> <span class="n">generation_exception</span><span class="p">:</span>
+    <span class="c"># Error response documentation:</span>
+    <span class="c"># http://tools.ietf.org/html/rfc6749#section-5.2</span>
+    <span class="n">error_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">generation_exception</span><span class="p">,</span>
+                         <span class="s">&#39;error_name&#39;</span><span class="p">,</span>
+                         <span class="s">&#39;invalid_request&#39;</span><span class="p">)</span>
+    <span class="n">error_description</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">generation_exception</span><span class="p">)</span> <span class="ow">or</span> <span class="s">&#39;INvalid Request.&#39;</span>
+    <span class="n">response_data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">&#39;error&#39;</span><span class="p">:</span>  <span class="n">error_name</span><span class="p">,</span>
+        <span class="s">&#39;error_description&#39;</span><span class="p">:</span> <span class="n">error_description</span><span class="p">,</span>
+      <span class="p">}</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">response_data</span><span class="p">),</span>
+                            <span class="n">content_type</span><span class="o">=</span><span class="s">&#39;application/json&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">generation_exception</span><span class="p">,</span> <span class="n">InvalidClient</span><span class="p">):</span>
+      <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">401</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">400</span>
+
+    <span class="k">return</span> <span class="n">response</span>
+
+</div>
+<div class="viewcode-block" id="generate_access_token_from_authorization_code"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.generate_access_token_from_authorization_code">[docs]</a><span class="k">def</span> <span class="nf">generate_access_token_from_authorization_code</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Generates a new AccessToken from a request with an authorization code.</span>
+
+<span class="sd">  Read the specification: http://tools.ietf.org/html/rfc6749#section-4.1.3</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">authorization_code_value</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;code&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">authorization_code_value</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;no &quot;code&quot; provided&#39;</span><span class="p">)</span>
+
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">authorization_code</span> <span class="o">=</span> <span class="n">AuthorizationCode</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">authorization_code_value</span><span class="p">,</span>
+        <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">)</span>
+  <span class="k">except</span> <span class="n">AuthorizationCode</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">InvalidGrant</span><span class="p">(</span>
+        <span class="s">&#39;&quot;{}&quot; is not a valid &quot;code&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">authorization_code_value</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="n">authorization_code</span><span class="o">.</span><span class="n">is_expired</span><span class="p">():</span>
+    <span class="c"># TODO(peter): implement an access counter and follow the recommendation</span>
+    <span class="c"># of http://tools.ietf.org/html/rfc6749#section-10.5:</span>
+    <span class="c">#</span>
+    <span class="c">#     If the authorization server observes multiple attempts to exchange an</span>
+    <span class="c">#     authorization code for an access token, the authorization server</span>
+    <span class="c">#     SHOULD attempt to revoke all access tokens already granted based on</span>
+    <span class="c">#     the compromised authorization code.</span>
+    <span class="c">#</span>
+    <span class="k">raise</span> <span class="n">InvalidGrant</span><span class="p">(</span><span class="s">&#39;provided &quot;code&quot; is expired&#39;</span><span class="p">)</span>
+
+  <span class="c"># From http://tools.ietf.org/html/rfc6749#section-4.1.3:</span>
+  <span class="c">#</span>
+  <span class="c">#     redirect_uri</span>
+  <span class="c">#         REQUIRED, if the &quot;redirect_uri&quot; parameter was included in the</span>
+  <span class="c">#         authorization request as described in Section 4.1.1, and their</span>
+  <span class="c">#         values MUST be identical.</span>
+  <span class="c">#</span>
+  <span class="c"># and later,</span>
+  <span class="c">#</span>
+  <span class="c">#     The authorization server MUST:</span>
+  <span class="c">#</span>
+  <span class="c">#     [ ... snip ... ]</span>
+  <span class="c">#</span>
+  <span class="c">#     o  ensure that the &quot;redirect_uri&quot; parameter is present if the</span>
+  <span class="c">#        &quot;redirect_uri&quot; parameter was included in the initial authorization</span>
+  <span class="c">#        request as described in Section 4.1.1, and if included ensure that</span>
+  <span class="c">#        their values are identical.</span>
+  <span class="c">#</span>
+  <span class="c"># The &#39;redirect_uri&#39; attribute of an AuthorizationCode will only be set if</span>
+  <span class="c"># the value was included as a parameter during the related authorization</span>
+  <span class="c"># request.</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">authorization_code</span><span class="o">.</span><span class="n">redirect_uri</span> <span class="ow">and</span>
+      <span class="n">authorization_code</span><span class="o">.</span><span class="n">redirect_uri</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;redirect_uri&#39;</span><span class="p">)):</span>
+    <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;&quot;redirect_uri&quot; value must match the value from &#39;</span>
+                         <span class="s">&#39;the authorization code request&#39;</span><span class="p">)</span>
+
+  <span class="n">new_access_token</span> <span class="o">=</span> <span class="n">AccessToken</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+      <span class="n">user</span><span class="o">=</span><span class="n">authorization_code</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
+      <span class="n">client</span><span class="o">=</span><span class="n">authorization_code</span><span class="o">.</span><span class="n">client</span><span class="p">)</span>
+  <span class="n">new_access_token</span><span class="o">.</span><span class="n">scopes</span> <span class="o">=</span> <span class="n">authorization_code</span><span class="o">.</span><span class="n">scopes</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+  <span class="n">new_access_token</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+  <span class="c"># TODO(peter): instead of deleting the authorization code (making any further</span>
+  <span class="c"># attempts to use it fail with a &#39;Does not exist&#39; error), store a</span>
+  <span class="c"># relationship to the created AccessToken object and mark the token as</span>
+  <span class="c"># &#39;expired&#39;. This allows for later rvocation of the AccessToken should there</span>
+  <span class="c"># be multiple attempts to re-use this AuthorizationCode.</span>
+  <span class="n">authorization_code</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+  <span class="k">return</span> <span class="n">new_access_token</span>
+
+</div>
+<div class="viewcode-block" id="generate_access_token_from_refresh_token"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.generate_access_token_from_refresh_token">[docs]</a><span class="k">def</span> <span class="nf">generate_access_token_from_refresh_token</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Generates a new AccessToken from a request containing a refresh token.</span>
+
+<span class="sd">  Read the specification: http://tools.ietf.org/html/rfc6749#section-6.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">refresh_token_value</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;refresh_token&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">refresh_token_value</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;no &quot;refresh_token&quot; provided&#39;</span><span class="p">)</span>
+
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">existing_access_token</span> <span class="o">=</span> <span class="n">AccessToken</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="n">refresh_token</span><span class="o">=</span><span class="n">refresh_token_value</span><span class="p">,</span>
+        <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">)</span>
+  <span class="k">except</span> <span class="n">AccessToken</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">InvalidGrant</span><span class="p">(</span><span class="s">&#39;&quot;{}&quot; is not a valid &quot;refresh_token&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+      <span class="n">refresh_token_value</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">existing_access_token</span><span class="o">.</span><span class="n">refreshable</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">InvalidGrant</span><span class="p">(</span><span class="s">&#39;access token is not refreshable&#39;</span><span class="p">)</span>
+
+  <span class="c"># The specification (http://tools.ietf.org/html/rfc6749#section-6) describes</span>
+  <span class="c"># the scope parameter as follows:</span>
+  <span class="c">#</span>
+  <span class="c">#     scope</span>
+  <span class="c">#           OPTIONAL.  The scope of the access request as described by</span>
+  <span class="c">#           Section 3.3.  The requested scope MUST NOT include any</span>
+  <span class="c">#           scope not originally granted by the resource owner, and if</span>
+  <span class="c">#           omitted is treated as equal to the scope originally granted</span>
+  <span class="c">#           by the resource owner.</span>
+  <span class="c">#</span>
+  <span class="c"># This implementation allows the Client ot request any scopes that together</span>
+  <span class="c"># comprise a subset of the previously-granted scopes. The specification</span>
+  <span class="c"># does not discuss this particular behavior, but the wording is such that</span>
+  <span class="c"># I believe this to be a reasonable behavior. That said, later in the same</span>
+  <span class="c"># section the specification includes the following:</span>
+  <span class="c">#</span>
+  <span class="c">#      If a new refresh token is issued, the refresh token scope MUST be</span>
+  <span class="c">#      identical to that of the refresh token included by the client in the</span>
+  <span class="c">#      request.</span>
+  <span class="c">#</span>
+  <span class="c"># I am open to being convinced that allowing scope de-escalation is against</span>
+  <span class="c"># the specification, but I cannot see why it would be necessary to forbid</span>
+  <span class="c"># it from a security standpoint.</span>
+  <span class="c">#</span>
+  <span class="c"># TODO(peter): reach a decision regarding this behavior.</span>
+
+  <span class="n">scope_objects</span> <span class="o">=</span> <span class="n">existing_access_token</span><span class="o">.</span><span class="n">scopes</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+  <span class="n">new_scope_names</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;scope&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">new_scope_names</span><span class="p">:</span>
+    <span class="c"># TODO(peter): use set-based method from the AuthorizationCodeGenerator:107.</span>
+    <span class="n">new_scope_names</span> <span class="o">=</span> <span class="n">new_scope_names</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">existing_access_token</span><span class="o">.</span><span class="n">has_scope</span><span class="p">(</span><span class="o">*</span><span class="n">new_scope_names</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="n">InvalidScope</span><span class="p">(</span><span class="s">&#39;requested scopes exceed initial grant&#39;</span><span class="p">)</span>
+
+    <span class="n">scope_objects</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">scope_name</span> <span class="ow">in</span> <span class="n">new_scope_names</span><span class="p">:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">scope_objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Scope</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">scope_name</span><span class="p">))</span>
+      <span class="k">except</span> <span class="n">Scope</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidScope</span><span class="p">(</span><span class="s">&#39;&quot;{}&quot; is not a valid scope&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scope_name</span><span class="p">))</span>
+
+
+  <span class="c"># The new AccessToken is only refreshable if at the time of refresh the</span>
+  <span class="c"># server is configured to create refreshable tokens by default. It DOES NOT</span>
+  <span class="c"># inherit the existing token&#39;s &#39;refreshability&#39; automatically. No behavior is</span>
+  <span class="c"># described in the specification; I believe this to be a sane decision.</span>
+  <span class="n">new_access_token</span> <span class="o">=</span> <span class="n">AccessToken</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+      <span class="n">user</span><span class="o">=</span><span class="n">existing_access_token</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
+      <span class="n">client</span><span class="o">=</span><span class="n">existing_access_token</span><span class="o">.</span><span class="n">client</span><span class="p">)</span>
+  <span class="n">new_access_token</span><span class="o">.</span><span class="n">scopes</span> <span class="o">=</span> <span class="n">scope_objects</span>
+  <span class="n">new_access_token</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+  <span class="c"># TODO(peter): instead of deleting the existing access token / refresh token</span>
+  <span class="c"># pair (that was just used to create the new access token), store a reference</span>
+  <span class="c"># to the newly created access token and mark the existing token as &#39;expired&#39;.</span>
+  <span class="c"># This allows tokens to remain in the DB for later analysis, but still</span>
+  <span class="c"># prevents a refresh token from being used multiple times. In the event that</span>
+  <span class="c"># an &#39;expired&#39; refresh token is used, it would be asy to alert the Client, as</span>
+  <span class="c"># recommended by http://tools.ietf.org/html/rfc6749#section-10.4 :</span>
+  <span class="c">#</span>
+  <span class="c">#     For example, the authorization server could employ refresh token</span>
+  <span class="c">#     rotation in which a new refresh token is issued with every access token</span>
+  <span class="c">#     refresh response.  The previous refresh token is invalidated but</span>
+  <span class="c">#     retained by the authorization server.  If a refresh token is</span>
+  <span class="c">#     compromised and subsequently used by both the attacker and the</span>
+  <span class="c">#     legitimate client, one of them will present an invalidated refresh</span>
+  <span class="c">#     token, which will inform the authorization server of the breach.</span>
+  <span class="c">#</span>
+  <span class="n">existing_access_token</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+  <span class="k">return</span> <span class="n">new_access_token</span>
+
+</div>
+<div class="viewcode-block" id="AccessTokenException"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.AccessTokenException">[docs]</a><span class="k">class</span> <span class="nc">AccessTokenException</span><span class="p">(</span><span class="n">DJOAuthException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Base class for all AccessToken-related exceptions.</span>
+
+<span class="sd">  Read the specification: http://tools.ietf.org/html/rfc6749#section-5.2 .</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+</div>
+<div class="viewcode-block" id="InvalidRequest"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.InvalidRequest">[docs]</a><span class="k">class</span> <span class="nc">InvalidRequest</span><span class="p">(</span><span class="n">AccessTokenException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The request is missing a required parameter, includes an unsupported</span>
+<span class="sd">  parameter value (other than grant type), repeats a parameter, includes</span>
+<span class="sd">  multiple credentials, utilizes more than one mechanism for authenticating the</span>
+<span class="sd">  client, or is otherwise malformed.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;invalid_request&#39;</span>
+
+</div>
+<div class="viewcode-block" id="InvalidClient"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.InvalidClient">[docs]</a><span class="k">class</span> <span class="nc">InvalidClient</span><span class="p">(</span><span class="n">AccessTokenException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Client authentication failed (e.g., unknown client, no client</span>
+<span class="sd">  authentication included, or unsupported authentication method). The</span>
+<span class="sd">  authorization server MAY return an HTTP 401 (Unauthorized) status code to</span>
+<span class="sd">  indicate which HTTP authentication schemes are supported. If the client</span>
+<span class="sd">  attempted to authenticate via the &quot;Authorization&quot; request header field, the</span>
+<span class="sd">  authorization server MUST respond with an HTTP 401 (Unauthorized) status code</span>
+<span class="sd">  and include the &quot;WWW-Authenticate&quot; response header field matching the</span>
+<span class="sd">  authentication scheme used by the client.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;invalid_client&#39;</span>
+
+</div>
+<div class="viewcode-block" id="InvalidGrant"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.InvalidGrant">[docs]</a><span class="k">class</span> <span class="nc">InvalidGrant</span><span class="p">(</span><span class="n">AccessTokenException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The provided authorization grant (e.g., authorization code, resource</span>
+<span class="sd">  owner credentials) or refresh token is invalid, expired, revoked, does not</span>
+<span class="sd">  match the redirection URI used in the authorization request, or was issued to</span>
+<span class="sd">  another client.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;invalid_grant&#39;</span>
+
+</div>
+<div class="viewcode-block" id="UnauthorizedClient"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.UnauthorizedClient">[docs]</a><span class="k">class</span> <span class="nc">UnauthorizedClient</span><span class="p">(</span><span class="n">AccessTokenException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The authenticated client is not authorized to use this authorization</span>
+<span class="sd">  grant type.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;unauthorized_client&#39;</span>
+
+</div>
+<div class="viewcode-block" id="UnsupportedGrantType"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.UnsupportedGrantType">[docs]</a><span class="k">class</span> <span class="nc">UnsupportedGrantType</span><span class="p">(</span><span class="n">AccessTokenException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The authorization grant type is not supported by the authorization</span>
+<span class="sd">  server.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;unsupported_grant_type&#39;</span>
+
+</div>
+<div class="viewcode-block" id="InvalidScope"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.views.InvalidScope">[docs]</a><span class="k">class</span> <span class="nc">InvalidScope</span><span class="p">(</span><span class="n">AccessTokenException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The requested scope is invalid, unknown, malformed, or exceeds the scope</span>
+<span class="sd">  granted by the resource owner.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;invalid_scope&#39;</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">DJOAuth2 0.1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Peter Downs.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

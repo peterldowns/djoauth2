@@ -1,0 +1,7 @@
+local_settings Module
+=====================
+
+.. automodule:: local_settings
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,0 +1,1011 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>djoauth2 Package &mdash; DJOAuth2 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="DJOAuth2 0.1.0 documentation" href="index.html" />
+    <link rel="next" title="tests Package" href="djoauth2.tests.html" />
+    <link rel="prev" title="Welcome to DJOAuth2’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="djoauth2.tests.html" title="tests Package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to DJOAuth2’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">DJOAuth2 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="djoauth2-package">
+<h1>djoauth2 Package<a class="headerlink" href="#djoauth2-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2><a class="reference internal" href="#module-djoauth2" title="djoauth2"><tt class="xref py py-mod docutils literal"><span class="pre">djoauth2</span></tt></a> Package<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-djoauth2"></span></div>
+<div class="section" id="module-djoauth2.access_token_authenticator">
+<span id="access-token-authenticator-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">access_token_authenticator</span></tt> Module<a class="headerlink" href="#module-djoauth2.access_token_authenticator" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="djoauth2.access_token_authenticator.AccessTokenAuthenticator">
+<em class="property">class </em><tt class="descclassname">djoauth2.access_token_authenticator.</tt><tt class="descname">AccessTokenAuthenticator</tt><big>(</big><em>required_scope_names=()</em><big>)</big><a class="reference internal" href="_modules/djoauth2/access_token_authenticator.html#AccessTokenAuthenticator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.access_token_authenticator.AccessTokenAuthenticator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Allows easy authentication checking and error response creation.</p>
+<p>See the &#8216;validate&#8217; method&#8217;s docstring for a usage example. We STRONGLY
+RECOMMEND that you use the &#8216;djoauth2.decorators.oauth_scope&#8217; method to
+protect your API endpoints instead of manually instatiating this object.</p>
+<dl class="method">
+<dt id="djoauth2.access_token_authenticator.AccessTokenAuthenticator.make_error_response">
+<tt class="descname">make_error_response</tt><big>(</big><em>validation_exception</em>, <em>expose_errors</em><big>)</big><a class="reference internal" href="_modules/djoauth2/access_token_authenticator.html#AccessTokenAuthenticator.make_error_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.access_token_authenticator.AccessTokenAuthenticator.make_error_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an appropriate response on authentication failure.</p>
+<p>Read the specification: <a class="reference external" href="http://tools.ietf.org/html/rfc6750#section-3.1">http://tools.ietf.org/html/rfc6750#section-3.1</a> .</p>
+<p>In case of an error, the specification only details the inclusion of the
+&#8216;WWW-Authenticate&#8217; header. Additionally, when allowed by the specification,
+we respond with error details formatted in JSON in the body of the
+response.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.access_token_authenticator.AccessTokenAuthenticator.validate">
+<tt class="descname">validate</tt><big>(</big><em>request</em><big>)</big><a class="reference internal" href="_modules/djoauth2/access_token_authenticator.html#AccessTokenAuthenticator.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.access_token_authenticator.AccessTokenAuthenticator.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks a request for proper authentication details.</p>
+<p>Returns a tuple of (access_token, error_response_arguments), which
+are described below.</p>
+<dl class="docutils">
+<dt>&#64;access_token: an AccessToken if the request is successfully authenticated,</dt>
+<dd>otherwise None.</dd>
+<dt>&#64;error_response_arguments: None if the request is successfully</dt>
+<dd>authenticated, otherwise a tuple of arguments to be used in a call to
+the &#8216;make_error_response&#8217; method.</dd>
+</dl>
+<p>For example, to restrict access to a given endpoint:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">foo_bar_resource</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="n">authenticator</span> <span class="o">=</span> <span class="n">AccessTokenAuthenticator</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="n">required_scope_names</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">,</span> <span class="s">&#39;bar&#39;</span><span class="p">))</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="n">access_token</span><span class="p">,</span> <span class="n">error_args</span> <span class="o">=</span> <span class="n">authenticator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="k">if</span> <span class="ow">not</span> <span class="n">access_token</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">authenticator</span><span class="o">.</span><span class="n">make_error_response</span><span class="p">(</span><span class="o">*</span><span class="n">error_args</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="c"># ... can now return use access_token</span>
+<span class="go">&gt;&gt;&gt;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.access_token_authenticator.AuthenticationException">
+<em class="property">exception </em><tt class="descclassname">djoauth2.access_token_authenticator.</tt><tt class="descname">AuthenticationException</tt><a class="reference internal" href="_modules/djoauth2/access_token_authenticator.html#AuthenticationException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.access_token_authenticator.AuthenticationException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.exceptions.DJOAuthException" title="djoauth2.exceptions.DJOAuthException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.exceptions.DJOAuthException</span></tt></a></p>
+<p>Base class for exceptions related to API request authentication.</p>
+<dl class="docutils">
+<dt>Read the Bearer Token specification for more details:</dt>
+<dd><ul class="first last simple">
+<li><a class="reference external" href="http://tools.ietf.org/html/rfc6750#section-3.1">http://tools.ietf.org/html/rfc6750#section-3.1</a></li>
+<li><a class="reference external" href="http://tools.ietf.org/html/rfc6750#section-6.2">http://tools.ietf.org/html/rfc6750#section-6.2</a></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.access_token_authenticator.InsufficientScope">
+<em class="property">exception </em><tt class="descclassname">djoauth2.access_token_authenticator.</tt><tt class="descname">InsufficientScope</tt><a class="reference internal" href="_modules/djoauth2/access_token_authenticator.html#InsufficientScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.access_token_authenticator.InsufficientScope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.access_token_authenticator.AuthenticationException" title="djoauth2.access_token_authenticator.AuthenticationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.access_token_authenticator.AuthenticationException</span></tt></a></p>
+<p>The request requires higher privileges than provided by the access token.
+The resource server SHOULD respond with the HTTP 403 (Forbidden) status code
+and MAY include the &#8220;scope&#8221; attribute with the scope necessary to access the
+protected resource.</p>
+<dl class="attribute">
+<dt id="djoauth2.access_token_authenticator.InsufficientScope.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'insufficient_scope'</em><a class="headerlink" href="#djoauth2.access_token_authenticator.InsufficientScope.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.access_token_authenticator.InvalidRequest">
+<em class="property">exception </em><tt class="descclassname">djoauth2.access_token_authenticator.</tt><tt class="descname">InvalidRequest</tt><a class="reference internal" href="_modules/djoauth2/access_token_authenticator.html#InvalidRequest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.access_token_authenticator.InvalidRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.access_token_authenticator.AuthenticationException" title="djoauth2.access_token_authenticator.AuthenticationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.access_token_authenticator.AuthenticationException</span></tt></a></p>
+<p>The request is missing a required parameter, includes an unsupported
+parameter or parameter value, repeats the same parameter, uses more than one
+method for including an access token, or is otherwise malformed. The
+resource server SHOULD respond with the HTTP 400 (Bad Request) status code.</p>
+<dl class="attribute">
+<dt id="djoauth2.access_token_authenticator.InvalidRequest.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_request'</em><a class="headerlink" href="#djoauth2.access_token_authenticator.InvalidRequest.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.access_token_authenticator.InvalidToken">
+<em class="property">exception </em><tt class="descclassname">djoauth2.access_token_authenticator.</tt><tt class="descname">InvalidToken</tt><a class="reference internal" href="_modules/djoauth2/access_token_authenticator.html#InvalidToken"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.access_token_authenticator.InvalidToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.access_token_authenticator.AuthenticationException" title="djoauth2.access_token_authenticator.AuthenticationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.access_token_authenticator.AuthenticationException</span></tt></a></p>
+<p>The access token provided is expired, revoked, malformed, or invalid for
+other reasons. The resource SHOULD respond with the HTTP 401 (Unauthorized)
+status code. The client MAY request a new access token and retry the
+protected resource request.</p>
+<dl class="attribute">
+<dt id="djoauth2.access_token_authenticator.InvalidToken.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_token'</em><a class="headerlink" href="#djoauth2.access_token_authenticator.InvalidToken.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-djoauth2.admin">
+<span id="admin-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">admin</span></tt> Module<a class="headerlink" href="#module-djoauth2.admin" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-djoauth2.authorization_code_generator">
+<span id="authorization-code-generator-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">authorization_code_generator</span></tt> Module<a class="headerlink" href="#module-djoauth2.authorization_code_generator" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.AccessDenied">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">AccessDenied</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#AccessDenied"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.AccessDenied" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.authorization_code_generator.AuthorizationException" title="djoauth2.authorization_code_generator.AuthorizationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.authorization_code_generator.AuthorizationException</span></tt></a></p>
+<p>The resource owner or authorization server denied the request.</p>
+<dl class="attribute">
+<dt id="djoauth2.authorization_code_generator.AccessDenied.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'access_denied'</em><a class="headerlink" href="#djoauth2.authorization_code_generator.AccessDenied.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="djoauth2.authorization_code_generator.AuthorizationCodeGenerator">
+<em class="property">class </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">AuthorizationCodeGenerator</tt><big>(</big><em>missing_redirect_uri</em><big>)</big><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#AuthorizationCodeGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.AuthorizationCodeGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Allows easy authorization request validation, code generation, and
+redirection creation.</p>
+<p>Use as part of your authorization page endpoint like so:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">authorization</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="n">auth_code_generator</span> <span class="o">=</span> <span class="n">AuthorizationCodeGenerator</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="s">&#39;/oauth2/missing_redirect_uri/&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="k">try</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="k">except</span> <span class="n">AuthorizationException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">print</span> <span class="n">e</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">raise</span> <span class="n">e</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">make_error_redirect</span><span class="p">()</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;GET&#39;</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c"># Show a page for the user to see the scope request. Include a form</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c"># for the user to authorize or reject the request. Make sure to</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c"># include all of the # original authorization request&#39;s parameters</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c"># with the form so that they # can be accessed when the user submits</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c"># the form.</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">original_request_parameters</span> <span class="o">=</span> <span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">get_request_uri_parameters</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c"># See the template example below.</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">template_render_context</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="s">&#39;form&#39;</span><span class="p">:</span> <span class="n">Form</span><span class="p">(),</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="s">&#39;client&#39;</span><span class="p">:</span> <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">client</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="s">&#39;scopes&#39;</span><span class="p">:</span> <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">valid_scope_objects</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="c"># Assumes that this endpoint is connected to</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="c"># the &#39;/oauth/authorization/&#39; URL.</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="s">&#39;form_action&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;/oauth2/authorization/?&#39;</span> <span class="o">+</span>
+<span class="gp">&gt;&gt;&gt; </span>                        <span class="n">original_request_parameters</span><span class="p">),</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                  <span class="s">&#39;oauth2server/authorization_page.html&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                  <span class="n">template_render_context</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c"># Check the form the user submits (see the template below.)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;user_action&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;Accept&#39;</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="k">return</span> <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">make_success_redirect</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">else</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="k">return</span> <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">make_error_redirect</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>An example of the &#8216;authorization_page.html&#8217; template:</p>
+<blockquote>
+<div><p>&lt;p&gt;{{client.name}} is requesting access to the following scopes:&lt;/p&gt;</p>
+<dl class="docutils">
+<dt>&lt;ul&gt;</dt>
+<dd>{% for scope in scopes %}
+&lt;li&gt; &lt;b&gt;{{scope.name}}&lt;/b&gt;: {{scope.description}} &lt;/li&gt;
+{% endfor %}</dd>
+</dl>
+<p>&lt;/ul&gt;</p>
+<dl class="docutils">
+<dt>&lt;form action=&#8221;{{form_action}}&#8221; method=&#8221;POST&#8221;&gt;</dt>
+<dd>{% csrf_token %}
+&lt;div style=&#8221;display: none;&#8221;&gt; {{form}} &lt;/div&gt;
+&lt;input type=&#8221;submit&#8221; name=&#8221;user_action&#8221; value=&#8221;Decline&#8221;/&gt;
+&lt;input type=&#8221;submit&#8221; name=&#8221;user_action&#8221; value=&#8221;Accept&#8221;/&gt;</dd>
+</dl>
+<p>&lt;/form&gt;</p>
+</div></blockquote>
+<dl class="method">
+<dt id="djoauth2.authorization_code_generator.AuthorizationCodeGenerator.get_request_uri_parameters">
+<tt class="descname">get_request_uri_parameters</tt><big>(</big><em>as_dict=False</em><big>)</big><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#AuthorizationCodeGenerator.get_request_uri_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.get_request_uri_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the URI parameters from a request passed to the &#8216;validate&#8217; method</p>
+<dl class="docutils">
+<dt>&#64;as_dict: if True, returns the parameters as a dictionary. If False, returns</dt>
+<dd>the parameters as a URI-encoded string.</dd>
+</dl>
+<p>The parameters returned by this method MUST be included in the &#8216;action&#8217; URL
+of the authorization form presented to the user. This carries the original
+authorization request parameters across the request.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.authorization_code_generator.AuthorizationCodeGenerator.make_error_redirect">
+<tt class="descname">make_error_redirect</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#AuthorizationCodeGenerator.make_error_redirect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.make_error_redirect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an HttpResponseRedirect when the authorization request fails.</p>
+<p>If the &#8216;validate&#8217; method raises an error, the authorization endpoint should
+return the result of this method like so:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">auth_code_generator</span> <span class="o">=</span> <span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">AuthorizationCodeGenerator</span><span class="p">(</span><span class="s">&#39;/oauth2/missing_redirect_uri/&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">try</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">except</span> <span class="n">AuthorizationException</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="k">return</span> <span class="n">auth_code_generator</span><span class="o">.</span><span class="n">make_error_redirect</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If there is no known &#8220;redirect_uri&#8221; (because it is malformed, or the Client
+is invalid, or if the supplied &#8220;redirect_uri&#8221; does not match the regsitered
+value, or some other request failure) then the response will redirect to
+the &#8216;missing_redirect_uri&#8217; passed to the &#8216;__init__&#8217; method.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.authorization_code_generator.AuthorizationCodeGenerator.make_success_redirect">
+<tt class="descname">make_success_redirect</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#AuthorizationCodeGenerator.make_success_redirect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.make_success_redirect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an HttpResponseRedirect when the authorization request succeeds.</p>
+<p>The custom authorization endpoint should return the result of this method
+when the user grants the Client&#8217;s authorization request. The request is
+assumed to have successfully been vetted by the &#8216;validate&#8217; method.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.authorization_code_generator.AuthorizationCodeGenerator.validate">
+<tt class="descname">validate</tt><big>(</big><em>request</em><big>)</big><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#AuthorizationCodeGenerator.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise an exception if the authorization request is invalid.</p>
+<p>Read the specification: <a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-4.1">http://tools.ietf.org/html/rfc6749#section-4.1</a> .</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.AuthorizationException">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">AuthorizationException</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#AuthorizationException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.AuthorizationException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.exceptions.DJOAuthException" title="djoauth2.exceptions.DJOAuthException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.exceptions.DJOAuthException</span></tt></a></p>
+<p>Base class for authorization-related exceptions.</p>
+<p>Read the specification: <a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-4.1.2.1">http://tools.ietf.org/html/rfc6749#section-4.1.2.1</a> .</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.InvalidRequest">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">InvalidRequest</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#InvalidRequest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.InvalidRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.authorization_code_generator.AuthorizationException" title="djoauth2.authorization_code_generator.AuthorizationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.authorization_code_generator.AuthorizationException</span></tt></a></p>
+<p>The request is missing a required parameter, includes an invalid
+parameter value, includes a parameter more than once, or is otherwise
+malformed.</p>
+<dl class="attribute">
+<dt id="djoauth2.authorization_code_generator.InvalidRequest.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_request'</em><a class="headerlink" href="#djoauth2.authorization_code_generator.InvalidRequest.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.InvalidScope">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">InvalidScope</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#InvalidScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.InvalidScope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.authorization_code_generator.AuthorizationException" title="djoauth2.authorization_code_generator.AuthorizationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.authorization_code_generator.AuthorizationException</span></tt></a></p>
+<p>The requested scope is invalid, unknown, or malformed.</p>
+<dl class="attribute">
+<dt id="djoauth2.authorization_code_generator.InvalidScope.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_scope'</em><a class="headerlink" href="#djoauth2.authorization_code_generator.InvalidScope.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.ServerError">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">ServerError</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#ServerError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.ServerError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.authorization_code_generator.AuthorizationException" title="djoauth2.authorization_code_generator.AuthorizationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.authorization_code_generator.AuthorizationException</span></tt></a></p>
+<p>The authorization server encountered an unexpected condition that
+prevented it from fulfilling the request. (This error code is needed because
+a 500 Internal Server Error HTTP status code cannot be returned to the client
+via an HTTP redirect.)</p>
+<dl class="attribute">
+<dt id="djoauth2.authorization_code_generator.ServerError.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'server_error'</em><a class="headerlink" href="#djoauth2.authorization_code_generator.ServerError.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.TemporarilyUnavailable">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">TemporarilyUnavailable</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#TemporarilyUnavailable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.TemporarilyUnavailable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.authorization_code_generator.AuthorizationException" title="djoauth2.authorization_code_generator.AuthorizationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.authorization_code_generator.AuthorizationException</span></tt></a></p>
+<p>The authorization server is currently unable to handle the request due to
+a temporary overloading or maintenance of the server. (This error code is
+needed because a 503 Service Unavailable HTTP status code cannot be returned
+to the client via an HTTP redirect.)</p>
+<dl class="attribute">
+<dt id="djoauth2.authorization_code_generator.TemporarilyUnavailable.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'temporarily_unavailable'</em><a class="headerlink" href="#djoauth2.authorization_code_generator.TemporarilyUnavailable.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.UnauthenticatedUser">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">UnauthenticatedUser</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#UnauthenticatedUser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.UnauthenticatedUser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.authorization_code_generator.AuthorizationException" title="djoauth2.authorization_code_generator.AuthorizationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.authorization_code_generator.AuthorizationException</span></tt></a></p>
+<p>Raised when the user is not authenticated during authorization.</p>
+<p>Not part of the OAuth specification.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.UnauthorizedClient">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">UnauthorizedClient</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#UnauthorizedClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.UnauthorizedClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.authorization_code_generator.AuthorizationException" title="djoauth2.authorization_code_generator.AuthorizationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.authorization_code_generator.AuthorizationException</span></tt></a></p>
+<p>The client is not authorized to request an authorization code using this
+method.</p>
+<dl class="attribute">
+<dt id="djoauth2.authorization_code_generator.UnauthorizedClient.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'unauthorized_client'</em><a class="headerlink" href="#djoauth2.authorization_code_generator.UnauthorizedClient.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.authorization_code_generator.UnsupportedResponseType">
+<em class="property">exception </em><tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">UnsupportedResponseType</tt><a class="reference internal" href="_modules/djoauth2/authorization_code_generator.html#UnsupportedResponseType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.authorization_code_generator.UnsupportedResponseType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.authorization_code_generator.AuthorizationException" title="djoauth2.authorization_code_generator.AuthorizationException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.authorization_code_generator.AuthorizationException</span></tt></a></p>
+<p>The authorization server does not support obtaining an authorization code
+using this method.</p>
+<dl class="attribute">
+<dt id="djoauth2.authorization_code_generator.UnsupportedResponseType.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'unsupported_response_type'</em><a class="headerlink" href="#djoauth2.authorization_code_generator.UnsupportedResponseType.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-djoauth2.conf">
+<span id="conf-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">conf</span></tt> Module<a class="headerlink" href="#module-djoauth2.conf" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="djoauth2.conf.DJOAuth2Conf">
+<em class="property">class </em><tt class="descclassname">djoauth2.conf.</tt><tt class="descname">DJOAuth2Conf</tt><big>(</big><em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/conf.html#DJOAuth2Conf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">appconf.base.AppConf</span></tt></p>
+<p>Default OAuth-related settings.</p>
+<p>We recommend that you DO NOT override these settings. Doing so can
+break compliance with the OAuth specification, and/or introduce large
+security flaws into the authentication process. Please read
+through the &#8216;Security Considerations&#8217; (
+<a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-10">http://tools.ietf.org/html/rfc6749#section-10</a> ) and convince yourself that
+you really know what you&#8217;re doing before changing any of these values.</p>
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.ACCESS_TOKENS_REFRESHABLE">
+<tt class="descname">ACCESS_TOKENS_REFRESHABLE</tt><em class="property"> = True</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.ACCESS_TOKENS_REFRESHABLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.ACCESS_TOKEN_LENGTH">
+<tt class="descname">ACCESS_TOKEN_LENGTH</tt><em class="property"> = 30</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.ACCESS_TOKEN_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.ACCESS_TOKEN_LIFETIME">
+<tt class="descname">ACCESS_TOKEN_LIFETIME</tt><em class="property"> = 3600</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.ACCESS_TOKEN_LIFETIME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.AUTHORIZATION_CODE_LENGTH">
+<tt class="descname">AUTHORIZATION_CODE_LENGTH</tt><em class="property"> = 30</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.AUTHORIZATION_CODE_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.AUTHORIZATION_CODE_LIFETIME">
+<tt class="descname">AUTHORIZATION_CODE_LIFETIME</tt><em class="property"> = 600</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.AUTHORIZATION_CODE_LIFETIME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.CLIENT_KEY_LENGTH">
+<tt class="descname">CLIENT_KEY_LENGTH</tt><em class="property"> = 30</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.CLIENT_KEY_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.CLIENT_SECRET_LENGTH">
+<tt class="descname">CLIENT_SECRET_LENGTH</tt><em class="property"> = 30</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.CLIENT_SECRET_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="djoauth2.conf.DJOAuth2Conf.Meta">
+<em class="property">class </em><tt class="descname">Meta</tt><a class="reference internal" href="_modules/djoauth2/conf.html#DJOAuth2Conf.Meta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.Meta" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.Meta.prefix">
+<tt class="descname">prefix</tt><em class="property"> = 'djoauth2'</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.Meta.prefix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.REALM">
+<tt class="descclassname">DJOAuth2Conf.</tt><tt class="descname">REALM</tt><em class="property"> = ''</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.REALM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.REFRESH_TOKEN_LENGTH">
+<tt class="descclassname">DJOAuth2Conf.</tt><tt class="descname">REFRESH_TOKEN_LENGTH</tt><em class="property"> = 30</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.REFRESH_TOKEN_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.REQUIRE_STATE">
+<tt class="descclassname">DJOAuth2Conf.</tt><tt class="descname">REQUIRE_STATE</tt><em class="property"> = True</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.REQUIRE_STATE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.conf.DJOAuth2Conf.SSL_ONLY">
+<tt class="descclassname">DJOAuth2Conf.</tt><tt class="descname">SSL_ONLY</tt><em class="property"> = True</em><a class="headerlink" href="#djoauth2.conf.DJOAuth2Conf.SSL_ONLY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-djoauth2.decorators">
+<span id="decorators-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">decorators</span></tt> Module<a class="headerlink" href="#module-djoauth2.decorators" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="djoauth2.decorators.oauth_scope">
+<tt class="descclassname">djoauth2.decorators.</tt><tt class="descname">oauth_scope</tt><big>(</big><em>*scope_names</em><big>)</big><a class="reference internal" href="_modules/djoauth2/decorators.html#oauth_scope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.decorators.oauth_scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Only allow requests with sufficient OAuth scope access.</p>
+<p>Returns a decorator that restricts requests to those that authenticate
+successfully and have access to the given scope names.</p>
+<p>For example, to restrict access to a given endpoint:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nd">@oauth_scope</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">,</span> <span class="s">&#39;bar&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">secret_attribute_endpoint</span><span class="p">(</span><span class="n">access_token</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="c"># Because of the decorator, the function is guarnateed to only be run</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="c"># if the request includes proper access to the &#39;foo&#39; and &#39;bar&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="c"># scopes.</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="n">user</span> <span class="o">=</span> <span class="n">access_token</span><span class="o">.</span><span class="n">user</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="k">return</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="s">&#39;super_secret_attribute&#39;</span> <span class="p">:</span> <span class="n">user</span><span class="o">.</span><span class="n">super_secret_attribute</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">})</span>
+</pre></div>
+</div>
+<p>The first argument to the wrapped endpoint will now be an AccessToken
+object. The second argument will be the original HttpRequest, and all
+other parameters will follow.</p>
+<p>We strongly recommend that you use this decorator to protect your API
+endpoints instead of manually instantiating an AccessTokenAuthenticator
+object.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-djoauth2.exceptions">
+<span id="exceptions-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">exceptions</span></tt> Module<a class="headerlink" href="#module-djoauth2.exceptions" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="djoauth2.exceptions.DJOAuthException">
+<em class="property">exception </em><tt class="descclassname">djoauth2.exceptions.</tt><tt class="descname">DJOAuthException</tt><a class="reference internal" href="_modules/djoauth2/exceptions.html#DJOAuthException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.exceptions.DJOAuthException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+<p>Base exception class for all OAuth-related exceptions.</p>
+<dl class="attribute">
+<dt id="djoauth2.exceptions.DJOAuthException.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_request'</em><a class="headerlink" href="#djoauth2.exceptions.DJOAuthException.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.exceptions.DJOAuthException.status_code">
+<tt class="descname">status_code</tt><em class="property"> = 400</em><a class="headerlink" href="#djoauth2.exceptions.DJOAuthException.status_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.exceptions.get_error_details">
+<tt class="descclassname">djoauth2.exceptions.</tt><tt class="descname">get_error_details</tt><big>(</big><em>exception</em><big>)</big><a class="reference internal" href="_modules/djoauth2/exceptions.html#get_error_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.exceptions.get_error_details" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return details about an OAuth excpetion.</p>
+<p>Returns a mapping with two keys, &#8216;error&#8217; and &#8216;error_description&#8217;, which are
+used in all error responses described by the OAuth 2.0 specification. Read
+more at:</p>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference external" href="http://tools.ietf.org/html/rfc6749">http://tools.ietf.org/html/rfc6749</a></li>
+<li><a class="reference external" href="http://tools.ietf.org/html/rfc6750">http://tools.ietf.org/html/rfc6750</a></li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+</div>
+<div class="section" id="module-djoauth2.helpers">
+<span id="helpers-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">helpers</span></tt> Module<a class="headerlink" href="#module-djoauth2.helpers" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="djoauth2.helpers.make_authorization_code">
+<tt class="descclassname">djoauth2.helpers.</tt><tt class="descname">make_authorization_code</tt><big>(</big><em>length</em><big>)</big><a class="reference internal" href="_modules/djoauth2/helpers.html#make_authorization_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.helpers.make_authorization_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.helpers.make_bearer_token">
+<tt class="descclassname">djoauth2.helpers.</tt><tt class="descname">make_bearer_token</tt><big>(</big><em>length</em><big>)</big><a class="reference internal" href="_modules/djoauth2/helpers.html#make_bearer_token"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.helpers.make_bearer_token" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.helpers.make_client_key">
+<tt class="descclassname">djoauth2.helpers.</tt><tt class="descname">make_client_key</tt><big>(</big><em>length</em><big>)</big><a class="reference internal" href="_modules/djoauth2/helpers.html#make_client_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.helpers.make_client_key" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.helpers.make_client_secret">
+<tt class="descclassname">djoauth2.helpers.</tt><tt class="descname">make_client_secret</tt><big>(</big><em>length</em><big>)</big><a class="reference internal" href="_modules/djoauth2/helpers.html#make_client_secret"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.helpers.make_client_secret" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.helpers.random_string">
+<tt class="descclassname">djoauth2.helpers.</tt><tt class="descname">random_string</tt><big>(</big><em>length</em>, <em>charset</em><big>)</big><a class="reference internal" href="_modules/djoauth2/helpers.html#random_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.helpers.random_string" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.helpers.update_parameters">
+<tt class="descclassname">djoauth2.helpers.</tt><tt class="descname">update_parameters</tt><big>(</big><em>url</em>, <em>parameters</em><big>)</big><a class="reference internal" href="_modules/djoauth2/helpers.html#update_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.helpers.update_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates a URL&#8217;s existing GET parameters.</p>
+<p>&#64;url: a URL string.
+&#64;parameters: a dictionary of parameters, {string:string}.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-djoauth2.models">
+<span id="models-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">models</span></tt> Module<a class="headerlink" href="#module-djoauth2.models" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="djoauth2.models.AccessToken">
+<em class="property">class </em><tt class="descclassname">djoauth2.models.</tt><tt class="descname">AccessToken</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AccessToken"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AccessToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.db.models.base.Model</span></tt></p>
+<p>AccessToken(id, client_id, date_created, lifetime, refreshable, refresh_token, user_id, value)</p>
+<dl class="exception">
+<dt id="djoauth2.models.AccessToken.DoesNotExist">
+<em class="property">exception </em><tt class="descname">DoesNotExist</tt><a class="headerlink" href="#djoauth2.models.AccessToken.DoesNotExist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.ObjectDoesNotExist</span></tt></p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.models.AccessToken.MultipleObjectsReturned">
+<em class="property">exception </em><tt class="descclassname">AccessToken.</tt><tt class="descname">MultipleObjectsReturned</tt><a class="headerlink" href="#djoauth2.models.AccessToken.MultipleObjectsReturned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.MultipleObjectsReturned</span></tt></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AccessToken.client">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">client</tt><a class="headerlink" href="#djoauth2.models.AccessToken.client" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AccessToken.get_next_by_date_created">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">get_next_by_date_created</tt><big>(</big><em>*moreargs</em>, <em>**morekwargs</em><big>)</big><a class="headerlink" href="#djoauth2.models.AccessToken.get_next_by_date_created" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AccessToken.get_previous_by_date_created">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">get_previous_by_date_created</tt><big>(</big><em>*moreargs</em>, <em>**morekwargs</em><big>)</big><a class="headerlink" href="#djoauth2.models.AccessToken.get_previous_by_date_created" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AccessToken.get_scope_names_set">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">get_scope_names_set</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AccessToken.get_scope_names_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AccessToken.get_scope_names_set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AccessToken.has_scope">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">has_scope</tt><big>(</big><em>*scope_names</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AccessToken.has_scope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AccessToken.has_scope" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AccessToken.is_expired">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">is_expired</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AccessToken.is_expired"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AccessToken.is_expired" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AccessToken.objects">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d0fd10&gt;</em><a class="headerlink" href="#djoauth2.models.AccessToken.objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AccessToken.scopes">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">scopes</tt><a class="headerlink" href="#djoauth2.models.AccessToken.scopes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AccessToken.user">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">user</tt><a class="headerlink" href="#djoauth2.models.AccessToken.user" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="djoauth2.models.AuthorizationCode">
+<em class="property">class </em><tt class="descclassname">djoauth2.models.</tt><tt class="descname">AuthorizationCode</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AuthorizationCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AuthorizationCode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.db.models.base.Model</span></tt></p>
+<p>AuthorizationCode(id, client_id, user_id, date_created, lifetime, redirect_uri, value)</p>
+<dl class="exception">
+<dt id="djoauth2.models.AuthorizationCode.DoesNotExist">
+<em class="property">exception </em><tt class="descname">DoesNotExist</tt><a class="headerlink" href="#djoauth2.models.AuthorizationCode.DoesNotExist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.ObjectDoesNotExist</span></tt></p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.models.AuthorizationCode.MultipleObjectsReturned">
+<em class="property">exception </em><tt class="descclassname">AuthorizationCode.</tt><tt class="descname">MultipleObjectsReturned</tt><a class="headerlink" href="#djoauth2.models.AuthorizationCode.MultipleObjectsReturned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.MultipleObjectsReturned</span></tt></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AuthorizationCode.client">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">client</tt><a class="headerlink" href="#djoauth2.models.AuthorizationCode.client" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AuthorizationCode.get_next_by_date_created">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">get_next_by_date_created</tt><big>(</big><em>*moreargs</em>, <em>**morekwargs</em><big>)</big><a class="headerlink" href="#djoauth2.models.AuthorizationCode.get_next_by_date_created" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AuthorizationCode.get_previous_by_date_created">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">get_previous_by_date_created</tt><big>(</big><em>*moreargs</em>, <em>**morekwargs</em><big>)</big><a class="headerlink" href="#djoauth2.models.AuthorizationCode.get_previous_by_date_created" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AuthorizationCode.get_scope_names_set">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">get_scope_names_set</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AuthorizationCode.get_scope_names_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AuthorizationCode.get_scope_names_set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AuthorizationCode.has_scope">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">has_scope</tt><big>(</big><em>*scope_names</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AuthorizationCode.has_scope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AuthorizationCode.has_scope" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="djoauth2.models.AuthorizationCode.is_expired">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">is_expired</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AuthorizationCode.is_expired"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AuthorizationCode.is_expired" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AuthorizationCode.objects">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d0de90&gt;</em><a class="headerlink" href="#djoauth2.models.AuthorizationCode.objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AuthorizationCode.scopes">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">scopes</tt><a class="headerlink" href="#djoauth2.models.AuthorizationCode.scopes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AuthorizationCode.user">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">user</tt><a class="headerlink" href="#djoauth2.models.AuthorizationCode.user" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="djoauth2.models.Client">
+<em class="property">class </em><tt class="descclassname">djoauth2.models.</tt><tt class="descname">Client</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.Client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.db.models.base.Model</span></tt></p>
+<p>Client(id, user_id, name, description, redirect_uri, key, secret)</p>
+<dl class="exception">
+<dt id="djoauth2.models.Client.DoesNotExist">
+<em class="property">exception </em><tt class="descname">DoesNotExist</tt><a class="headerlink" href="#djoauth2.models.Client.DoesNotExist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.ObjectDoesNotExist</span></tt></p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.models.Client.MultipleObjectsReturned">
+<em class="property">exception </em><tt class="descclassname">Client.</tt><tt class="descname">MultipleObjectsReturned</tt><a class="headerlink" href="#djoauth2.models.Client.MultipleObjectsReturned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.MultipleObjectsReturned</span></tt></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.Client.accesstoken_set">
+<tt class="descclassname">Client.</tt><tt class="descname">accesstoken_set</tt><a class="headerlink" href="#djoauth2.models.Client.accesstoken_set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.Client.authorizationcode_set">
+<tt class="descclassname">Client.</tt><tt class="descname">authorizationcode_set</tt><a class="headerlink" href="#djoauth2.models.Client.authorizationcode_set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.Client.objects">
+<tt class="descclassname">Client.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d07b50&gt;</em><a class="headerlink" href="#djoauth2.models.Client.objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.Client.user">
+<tt class="descclassname">Client.</tt><tt class="descname">user</tt><a class="headerlink" href="#djoauth2.models.Client.user" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="djoauth2.models.Scope">
+<em class="property">class </em><tt class="descclassname">djoauth2.models.</tt><tt class="descname">Scope</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#Scope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.Scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.db.models.base.Model</span></tt></p>
+<p>Scope(id, name, description)</p>
+<dl class="exception">
+<dt id="djoauth2.models.Scope.DoesNotExist">
+<em class="property">exception </em><tt class="descname">DoesNotExist</tt><a class="headerlink" href="#djoauth2.models.Scope.DoesNotExist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.ObjectDoesNotExist</span></tt></p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.models.Scope.MultipleObjectsReturned">
+<em class="property">exception </em><tt class="descclassname">Scope.</tt><tt class="descname">MultipleObjectsReturned</tt><a class="headerlink" href="#djoauth2.models.Scope.MultipleObjectsReturned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.MultipleObjectsReturned</span></tt></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.Scope.access_tokens">
+<tt class="descclassname">Scope.</tt><tt class="descname">access_tokens</tt><a class="headerlink" href="#djoauth2.models.Scope.access_tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.Scope.authorization_codes">
+<tt class="descclassname">Scope.</tt><tt class="descname">authorization_codes</tt><a class="headerlink" href="#djoauth2.models.Scope.authorization_codes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.Scope.objects">
+<tt class="descclassname">Scope.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d07e90&gt;</em><a class="headerlink" href="#djoauth2.models.Scope.objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-djoauth2.urls">
+<span id="urls-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">urls</span></tt> Module<a class="headerlink" href="#module-djoauth2.urls" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-djoauth2.views">
+<span id="views-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">views</span></tt> Module<a class="headerlink" href="#module-djoauth2.views" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="djoauth2.views.AccessTokenException">
+<em class="property">exception </em><tt class="descclassname">djoauth2.views.</tt><tt class="descname">AccessTokenException</tt><a class="reference internal" href="_modules/djoauth2/views.html#AccessTokenException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.AccessTokenException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.exceptions.DJOAuthException" title="djoauth2.exceptions.DJOAuthException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.exceptions.DJOAuthException</span></tt></a></p>
+<p>Base class for all AccessToken-related exceptions.</p>
+<p>Read the specification: <a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-5.2">http://tools.ietf.org/html/rfc6749#section-5.2</a> .</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.views.InvalidClient">
+<em class="property">exception </em><tt class="descclassname">djoauth2.views.</tt><tt class="descname">InvalidClient</tt><a class="reference internal" href="_modules/djoauth2/views.html#InvalidClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.InvalidClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.views.AccessTokenException" title="djoauth2.views.AccessTokenException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.views.AccessTokenException</span></tt></a></p>
+<p>Client authentication failed (e.g., unknown client, no client
+authentication included, or unsupported authentication method). The
+authorization server MAY return an HTTP 401 (Unauthorized) status code to
+indicate which HTTP authentication schemes are supported. If the client
+attempted to authenticate via the &#8220;Authorization&#8221; request header field, the
+authorization server MUST respond with an HTTP 401 (Unauthorized) status code
+and include the &#8220;WWW-Authenticate&#8221; response header field matching the
+authentication scheme used by the client.</p>
+<dl class="attribute">
+<dt id="djoauth2.views.InvalidClient.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_client'</em><a class="headerlink" href="#djoauth2.views.InvalidClient.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.views.InvalidGrant">
+<em class="property">exception </em><tt class="descclassname">djoauth2.views.</tt><tt class="descname">InvalidGrant</tt><a class="reference internal" href="_modules/djoauth2/views.html#InvalidGrant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.InvalidGrant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.views.AccessTokenException" title="djoauth2.views.AccessTokenException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.views.AccessTokenException</span></tt></a></p>
+<p>The provided authorization grant (e.g., authorization code, resource
+owner credentials) or refresh token is invalid, expired, revoked, does not
+match the redirection URI used in the authorization request, or was issued to
+another client.</p>
+<dl class="attribute">
+<dt id="djoauth2.views.InvalidGrant.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_grant'</em><a class="headerlink" href="#djoauth2.views.InvalidGrant.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.views.InvalidRequest">
+<em class="property">exception </em><tt class="descclassname">djoauth2.views.</tt><tt class="descname">InvalidRequest</tt><a class="reference internal" href="_modules/djoauth2/views.html#InvalidRequest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.InvalidRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.views.AccessTokenException" title="djoauth2.views.AccessTokenException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.views.AccessTokenException</span></tt></a></p>
+<p>The request is missing a required parameter, includes an unsupported
+parameter value (other than grant type), repeats a parameter, includes
+multiple credentials, utilizes more than one mechanism for authenticating the
+client, or is otherwise malformed.</p>
+<dl class="attribute">
+<dt id="djoauth2.views.InvalidRequest.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_request'</em><a class="headerlink" href="#djoauth2.views.InvalidRequest.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.views.InvalidScope">
+<em class="property">exception </em><tt class="descclassname">djoauth2.views.</tt><tt class="descname">InvalidScope</tt><a class="reference internal" href="_modules/djoauth2/views.html#InvalidScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.InvalidScope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.views.AccessTokenException" title="djoauth2.views.AccessTokenException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.views.AccessTokenException</span></tt></a></p>
+<p>The requested scope is invalid, unknown, malformed, or exceeds the scope
+granted by the resource owner.</p>
+<dl class="attribute">
+<dt id="djoauth2.views.InvalidScope.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'invalid_scope'</em><a class="headerlink" href="#djoauth2.views.InvalidScope.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.views.UnauthorizedClient">
+<em class="property">exception </em><tt class="descclassname">djoauth2.views.</tt><tt class="descname">UnauthorizedClient</tt><a class="reference internal" href="_modules/djoauth2/views.html#UnauthorizedClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.UnauthorizedClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.views.AccessTokenException" title="djoauth2.views.AccessTokenException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.views.AccessTokenException</span></tt></a></p>
+<p>The authenticated client is not authorized to use this authorization
+grant type.</p>
+<dl class="attribute">
+<dt id="djoauth2.views.UnauthorizedClient.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'unauthorized_client'</em><a class="headerlink" href="#djoauth2.views.UnauthorizedClient.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="djoauth2.views.UnsupportedGrantType">
+<em class="property">exception </em><tt class="descclassname">djoauth2.views.</tt><tt class="descname">UnsupportedGrantType</tt><a class="reference internal" href="_modules/djoauth2/views.html#UnsupportedGrantType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.UnsupportedGrantType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#djoauth2.views.AccessTokenException" title="djoauth2.views.AccessTokenException"><tt class="xref py py-class docutils literal"><span class="pre">djoauth2.views.AccessTokenException</span></tt></a></p>
+<p>The authorization grant type is not supported by the authorization
+server.</p>
+<dl class="attribute">
+<dt id="djoauth2.views.UnsupportedGrantType.error_name">
+<tt class="descname">error_name</tt><em class="property"> = 'unsupported_grant_type'</em><a class="headerlink" href="#djoauth2.views.UnsupportedGrantType.error_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.views.access_token_endpoint">
+<tt class="descclassname">djoauth2.views.</tt><tt class="descname">access_token_endpoint</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/views.html#access_token_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.access_token_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates AccessTokens if provided with sufficient authorization.</p>
+<dl class="docutils">
+<dt>This endpoint only supports two grant types:</dt>
+<dd><ul class="first last simple">
+<li>authorization_code: <a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-4.1">http://tools.ietf.org/html/rfc6749#section-4.1</a></li>
+<li>refresh_token: <a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-6">http://tools.ietf.org/html/rfc6749#section-6</a></li>
+</ul>
+</dd>
+</dl>
+<p>For further documentation, read <a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-3.2">http://tools.ietf.org/html/rfc6749#section-3.2</a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.views.generate_access_token_from_authorization_code">
+<tt class="descclassname">djoauth2.views.</tt><tt class="descname">generate_access_token_from_authorization_code</tt><big>(</big><em>request</em>, <em>client</em><big>)</big><a class="reference internal" href="_modules/djoauth2/views.html#generate_access_token_from_authorization_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.generate_access_token_from_authorization_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a new AccessToken from a request with an authorization code.</p>
+<p>Read the specification: <a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-4.1.3">http://tools.ietf.org/html/rfc6749#section-4.1.3</a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="djoauth2.views.generate_access_token_from_refresh_token">
+<tt class="descclassname">djoauth2.views.</tt><tt class="descname">generate_access_token_from_refresh_token</tt><big>(</big><em>request</em>, <em>client</em><big>)</big><a class="reference internal" href="_modules/djoauth2/views.html#generate_access_token_from_refresh_token"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.views.generate_access_token_from_refresh_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a new AccessToken from a request containing a refresh token.</p>
+<p>Read the specification: <a class="reference external" href="http://tools.ietf.org/html/rfc6749#section-6">http://tools.ietf.org/html/rfc6749#section-6</a>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="djoauth2.tests.html">tests Package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="djoauth2.tests.html#module-djoauth2.tests.test_urls"><tt class="docutils literal"><span class="pre">test_urls</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">djoauth2 Package</a><ul>
+<li><a class="reference internal" href="#id1"><tt class="docutils literal"><span class="pre">djoauth2</span></tt> Package</a></li>
+<li><a class="reference internal" href="#module-djoauth2.access_token_authenticator"><tt class="docutils literal"><span class="pre">access_token_authenticator</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.admin"><tt class="docutils literal"><span class="pre">admin</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.authorization_code_generator"><tt class="docutils literal"><span class="pre">authorization_code_generator</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.conf"><tt class="docutils literal"><span class="pre">conf</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.decorators"><tt class="docutils literal"><span class="pre">decorators</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.exceptions"><tt class="docutils literal"><span class="pre">exceptions</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.helpers"><tt class="docutils literal"><span class="pre">helpers</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.models"><tt class="docutils literal"><span class="pre">models</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.urls"><tt class="docutils literal"><span class="pre">urls</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-djoauth2.views"><tt class="docutils literal"><span class="pre">views</span></tt> Module</a></li>
+<li><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to DJOAuth2&#8217;s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="djoauth2.tests.html"
+                        title="next chapter">tests Package</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/djoauth2.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="djoauth2.tests.html" title="tests Package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to DJOAuth2’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">DJOAuth2 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Peter Downs.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

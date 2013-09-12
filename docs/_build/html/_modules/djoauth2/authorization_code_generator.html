@@ -1,0 +1,402 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>djoauth2.authorization_code_generator &mdash; DJOAuth2 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="DJOAuth2 0.1.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">DJOAuth2 0.1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for djoauth2.authorization_code_generator</h1><div class="highlight"><pre>
+<span class="c"># coding: utf-8</span>
+<span class="kn">from</span> <span class="nn">urllib</span> <span class="kn">import</span> <span class="n">urlencode</span>
+
+<span class="kn">from</span> <span class="nn">django.http.request</span> <span class="kn">import</span> <span class="n">absolute_http_url_re</span>
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="kn">import</span> <span class="n">HttpResponseRedirect</span>
+
+<span class="kn">from</span> <span class="nn">djoauth2.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">djoauth2.exceptions</span> <span class="kn">import</span> <span class="n">DJOAuthException</span>
+<span class="kn">from</span> <span class="nn">djoauth2.exceptions</span> <span class="kn">import</span> <span class="n">get_error_details</span>
+<span class="kn">from</span> <span class="nn">djoauth2.helpers</span> <span class="kn">import</span> <span class="n">update_parameters</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">AuthorizationCode</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">Client</span>
+<span class="kn">from</span> <span class="nn">djoauth2.models</span> <span class="kn">import</span> <span class="n">Scope</span>
+
+<span class="c"># TODO(peter): provide a method for easy checking to see if a Client has</span>
+<span class="c"># received permission for the requested scopes in the past. This is NOT a</span>
+<span class="c"># critical part of the authorization endpoint implementation, but it does allow</span>
+<span class="c"># for much more convenience for users (they will not need to re-authorize.)</span>
+
+<span class="c"># TODO(peter): implement a helper method for easily creating these endpoints so</span>
+<span class="c"># that users do not need to interact with this object, which is complicated and</span>
+<span class="c"># painful. Alternatively, simplify this object&#39;s usage API.</span>
+<span class="c">#</span>
+<span class="c">#     def make_auth_endpoint(redirect_uri,</span>
+<span class="c">#                            endpoint_uri,</span>
+<span class="c">#                            authorization_template,</span>
+<span class="c">#                            past_socpe_authorized)</span>
+<span class="c">#</span>
+<div class="viewcode-block" id="AuthorizationCodeGenerator"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.AuthorizationCodeGenerator">[docs]</a><span class="k">class</span> <span class="nc">AuthorizationCodeGenerator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Allows easy authorization request validation, code generation, and</span>
+<span class="sd">  redirection creation.</span>
+
+<span class="sd">  Use as part of your authorization page endpoint like so:</span>
+
+<span class="sd">    &gt;&gt;&gt; def authorization(request):</span>
+<span class="sd">    &gt;&gt;&gt;   auth_code_generator = AuthorizationCodeGenerator(</span>
+<span class="sd">    &gt;&gt;&gt;       &#39;/oauth2/missing_redirect_uri/&#39;)</span>
+<span class="sd">    &gt;&gt;&gt;   try:</span>
+<span class="sd">    &gt;&gt;&gt;     auth_code_generator.validate(request)</span>
+<span class="sd">    &gt;&gt;&gt;   except AuthorizationException as e:</span>
+<span class="sd">    &gt;&gt;&gt;     print e</span>
+<span class="sd">    &gt;&gt;&gt;     raise e</span>
+<span class="sd">    &gt;&gt;&gt;     return auth_code_generator.make_error_redirect()</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt;   if request.method == &#39;GET&#39;:</span>
+<span class="sd">    &gt;&gt;&gt;     # Show a page for the user to see the scope request. Include a form</span>
+<span class="sd">    &gt;&gt;&gt;     # for the user to authorize or reject the request. Make sure to</span>
+<span class="sd">    &gt;&gt;&gt;     # include all of the # original authorization request&#39;s parameters</span>
+<span class="sd">    &gt;&gt;&gt;     # with the form so that they # can be accessed when the user submits</span>
+<span class="sd">    &gt;&gt;&gt;     # the form.</span>
+<span class="sd">    &gt;&gt;&gt;     original_request_parameters = (</span>
+<span class="sd">    &gt;&gt;&gt;         auth_code_generator.get_request_uri_parameters())</span>
+<span class="sd">    &gt;&gt;&gt;     # See the template example below.</span>
+<span class="sd">    &gt;&gt;&gt;     template_render_context = {</span>
+<span class="sd">    &gt;&gt;&gt;         &#39;form&#39;: Form(),</span>
+<span class="sd">    &gt;&gt;&gt;         &#39;client&#39;: auth_code_generator.client,</span>
+<span class="sd">    &gt;&gt;&gt;         &#39;scopes&#39;: auth_code_generator.valid_scope_objects,</span>
+<span class="sd">    &gt;&gt;&gt;         # Assumes that this endpoint is connected to</span>
+<span class="sd">    &gt;&gt;&gt;         # the &#39;/oauth/authorization/&#39; URL.</span>
+<span class="sd">    &gt;&gt;&gt;         &#39;form_action&#39;: (&#39;/oauth2/authorization/?&#39; +</span>
+<span class="sd">    &gt;&gt;&gt;                         original_request_parameters),</span>
+<span class="sd">    &gt;&gt;&gt;       }</span>
+<span class="sd">    &gt;&gt;&gt;     return render(request,</span>
+<span class="sd">    &gt;&gt;&gt;                   &#39;oauth2server/authorization_page.html&#39;,</span>
+<span class="sd">    &gt;&gt;&gt;                   template_render_context)</span>
+<span class="sd">    &gt;&gt;&gt;   elif request.method == &#39;POST&#39;:</span>
+<span class="sd">    &gt;&gt;&gt;     # Check the form the user submits (see the template below.)</span>
+<span class="sd">    &gt;&gt;&gt;     if request.POST.get(&#39;user_action&#39;) == &#39;Accept&#39;:</span>
+<span class="sd">    &gt;&gt;&gt;       return auth_code_generator.make_success_redirect()</span>
+<span class="sd">    &gt;&gt;&gt;     else:</span>
+<span class="sd">    &gt;&gt;&gt;       return auth_code_generator.make_error_redirect()</span>
+
+<span class="sd">  An example of the &#39;authorization_page.html&#39; template:</span>
+
+<span class="sd">      &lt;p&gt;{{client.name}} is requesting access to the following scopes:&lt;/p&gt;</span>
+
+<span class="sd">      &lt;ul&gt;</span>
+<span class="sd">        {% for scope in scopes %}</span>
+<span class="sd">        &lt;li&gt; &lt;b&gt;{{scope.name}}&lt;/b&gt;: {{scope.description}} &lt;/li&gt;</span>
+<span class="sd">        {% endfor %}</span>
+<span class="sd">      &lt;/ul&gt;</span>
+
+
+<span class="sd">      &lt;form action=&quot;{{form_action}}&quot; method=&quot;POST&quot;&gt;</span>
+<span class="sd">        {% csrf_token %}</span>
+<span class="sd">        &lt;div style=&quot;display: none;&quot;&gt; {{form}} &lt;/div&gt;</span>
+<span class="sd">        &lt;input type=&quot;submit&quot; name=&quot;user_action&quot; value=&quot;Decline&quot;/&gt;</span>
+<span class="sd">        &lt;input type=&quot;submit&quot; name=&quot;user_action&quot; value=&quot;Accept&quot;/&gt;</span>
+<span class="sd">      &lt;/form&gt;</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">missing_redirect_uri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create a new AuthorizationCodeGenerator.</span>
+
+<span class="sd">    @missing_redirect_uri: a string URI to which to redirect the user if the</span>
+<span class="sd">        authorization request is not valid and no redirect is able to be parsed</span>
+<span class="sd">        from the request.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">missing_redirect_uri</span> <span class="o">=</span> <span class="n">missing_redirect_uri</span>
+    <span class="c"># Values that will be set by the &#39;validate&#39; method.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">redirect_uri</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">request_redirect_uri</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">valid_scope_objects</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="AuthorizationCodeGenerator.validate"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.validate">[docs]</a>  <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Raise an exception if the authorization request is invalid.</span>
+
+<span class="sd">    Read the specification: http://tools.ietf.org/html/rfc6749#section-4.1 .</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">DJOAUTH2_SSL_ONLY</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">is_secure</span><span class="p">():</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;all requests must use TLS&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">request</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span><span class="p">():</span>
+      <span class="k">raise</span> <span class="n">UnauthenticatedUser</span><span class="p">(</span><span class="s">&#39;user must be authenticated&#39;</span><span class="p">)</span>
+
+    <span class="n">response_type</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">REQUEST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;response_type&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">response_type</span> <span class="o">!=</span> <span class="s">&#39;code&#39;</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">UnsupportedResponseType</span><span class="p">(</span><span class="s">&#39;&quot;response_type&quot; must be &quot;code&quot;&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">REQUEST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;state&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">DJOAUTH2_REQUIRE_STATE</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;&quot;state&quot; must be included&#39;</span><span class="p">)</span>
+
+    <span class="n">scope_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">REQUEST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;scope&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">valid_scope_objects</span> <span class="o">=</span> <span class="n">Scope</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">name__in</span><span class="o">=</span><span class="n">scope_names</span><span class="p">)</span>
+    <span class="n">valid_scope_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">scope</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_scope_objects</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">valid_scope_names</span> <span class="o">&lt;</span> <span class="n">scope_names</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidScope</span><span class="p">(</span><span class="s">&#39;the following scopes do not exist: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+          <span class="s">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&#39;&quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="n">scope_names</span> <span class="o">-</span> <span class="n">valid_scope_names</span><span class="p">))</span>
+        <span class="p">))</span>
+
+    <span class="n">client_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">REQUEST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;client_id&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">client_id</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;no &quot;client_id&quot; provided&#39;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">client_id</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">Client</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;&quot;client_id&quot; does not exist&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">request_redirect_uri</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">REQUEST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;redirect_uri&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">redirect_uri</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_redirect_uri</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;no &quot;redirect_uri&quot; provided or registered&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">redirect_uri</span> <span class="ow">and</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">request_redirect_uri</span> <span class="ow">and</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">redirect_uri</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_redirect_uri</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;&quot;redirect_uri&quot; does not matched the registered URI&#39;</span><span class="p">)</span>
+
+    <span class="n">redirect_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">redirect_uri</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_redirect_uri</span>
+    <span class="c"># TODO(peter): add this requirement as an on_save validation on the Client</span>
+    <span class="c"># object.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">absolute_http_url_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">redirect_uri</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="n">InvalidRequest</span><span class="p">(</span><span class="s">&#39;&quot;redirect_uri&quot; must be absolute&#39;</span><span class="p">)</span>
+
+    <span class="c"># Only store the redirect_uri value if it validates successfully. The</span>
+    <span class="c"># &#39;make_error_redirect&#39; method will use the &#39;missing_redirect_uri&#39; passed</span>
+    <span class="c"># to the &#39;__init__&#39; method if &#39;self.redirect_uri&#39; is None.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">redirect_uri</span> <span class="o">=</span> <span class="n">redirect_uri</span>
+</div>
+<div class="viewcode-block" id="AuthorizationCodeGenerator.get_request_uri_parameters"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.get_request_uri_parameters">[docs]</a>  <span class="k">def</span> <span class="nf">get_request_uri_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">as_dict</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return the URI parameters from a request passed to the &#39;validate&#39; method</span>
+
+<span class="sd">    @as_dict: if True, returns the parameters as a dictionary. If False, returns</span>
+<span class="sd">        the parameters as a URI-encoded string.</span>
+
+<span class="sd">    The parameters returned by this method MUST be included in the &#39;action&#39; URL</span>
+<span class="sd">    of the authorization form presented to the user. This carries the original</span>
+<span class="sd">    authorization request parameters across the request.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;request must have been passed to the &quot;validate&quot; method&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">as_dict</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">REQUEST</span><span class="o">.</span><span class="n">dict</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">urlencode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">REQUEST</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="AuthorizationCodeGenerator.make_error_redirect"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.make_error_redirect">[docs]</a>  <span class="k">def</span> <span class="nf">make_error_redirect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return an HttpResponseRedirect when the authorization request fails.</span>
+
+<span class="sd">    If the &#39;validate&#39; method raises an error, the authorization endpoint should</span>
+<span class="sd">    return the result of this method like so:</span>
+
+<span class="sd">      &gt;&gt;&gt; auth_code_generator = (</span>
+<span class="sd">      &gt;&gt;&gt;     AuthorizationCodeGenerator(&#39;/oauth2/missing_redirect_uri/&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; try:</span>
+<span class="sd">      &gt;&gt;&gt;   auth_code_generator.validate(request)</span>
+<span class="sd">      &gt;&gt;&gt; except AuthorizationException:</span>
+<span class="sd">      &gt;&gt;&gt;   return auth_code_generator.make_error_redirect()</span>
+
+<span class="sd">    If there is no known &quot;redirect_uri&quot; (because it is malformed, or the Client</span>
+<span class="sd">    is invalid, or if the supplied &quot;redirect_uri&quot; does not match the regsitered</span>
+<span class="sd">    value, or some other request failure) then the response will redirect to</span>
+<span class="sd">    the &#39;missing_redirect_uri&#39; passed to the &#39;__init__&#39; method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">redirect_uri</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">HttpResponseRedirect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_redirect_uri</span><span class="p">)</span>
+
+    <span class="n">validation_error</span> <span class="o">=</span> <span class="n">AccessDenied</span><span class="p">(</span><span class="s">&#39;user denied the request&#39;</span><span class="p">)</span>
+    <span class="n">response_params</span> <span class="o">=</span> <span class="n">get_error_details</span><span class="p">(</span><span class="n">validation_error</span><span class="p">)</span>
+    <span class="c"># From http://tools.ietf.org/html/rfc6749#section-4.1.2.1 :</span>
+    <span class="c">#</span>
+    <span class="c">#     REQUIRED if the &quot;state&quot; parameter was present in the client</span>
+    <span class="c">#     authorization request.  The exact value received from the</span>
+    <span class="c">#     client.</span>
+    <span class="c">#</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+      <span class="n">response_params</span><span class="p">[</span><span class="s">&#39;state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
+    <span class="k">return</span> <span class="n">HttpResponseRedirect</span><span class="p">(</span>
+        <span class="n">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">redirect_uri</span><span class="p">,</span> <span class="n">response_params</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="AuthorizationCodeGenerator.make_success_redirect"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.make_success_redirect">[docs]</a>  <span class="k">def</span> <span class="nf">make_success_redirect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return an HttpResponseRedirect when the authorization request succeeds.</span>
+
+<span class="sd">    The custom authorization endpoint should return the result of this method</span>
+<span class="sd">    when the user grants the Client&#39;s authorization request. The request is</span>
+<span class="sd">    assumed to have successfully been vetted by the &#39;validate&#39; method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_authorization_code</span> <span class="o">=</span> <span class="n">AuthorizationCode</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
+        <span class="n">client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">,</span>
+        <span class="n">redirect_uri</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request_redirect_uri</span>
+                      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_redirect_uri</span>
+                      <span class="k">else</span> <span class="bp">None</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">new_authorization_code</span><span class="o">.</span><span class="n">scopes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_scope_objects</span>
+    <span class="n">new_authorization_code</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="n">response_params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;code&#39;</span><span class="p">:</span> <span class="n">new_authorization_code</span><span class="o">.</span><span class="n">value</span><span class="p">}</span>
+    <span class="c"># From http://tools.ietf.org/html/rfc6749#section-4.1.2 :</span>
+    <span class="c">#</span>
+    <span class="c">#     REQUIRED if the &quot;state&quot; parameter was present in the client</span>
+    <span class="c">#     authorization request.  The exact value received from the</span>
+    <span class="c">#     client.</span>
+    <span class="c">#</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+      <span class="n">response_params</span><span class="p">[</span><span class="s">&#39;state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
+    <span class="k">return</span> <span class="n">HttpResponseRedirect</span><span class="p">(</span>
+        <span class="n">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">redirect_uri</span><span class="p">,</span> <span class="n">response_params</span><span class="p">))</span>
+
+</div></div>
+<div class="viewcode-block" id="AuthorizationException"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.AuthorizationException">[docs]</a><span class="k">class</span> <span class="nc">AuthorizationException</span><span class="p">(</span><span class="n">DJOAuthException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Base class for authorization-related exceptions.</span>
+
+<span class="sd">  Read the specification: http://tools.ietf.org/html/rfc6749#section-4.1.2.1 .</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+</div>
+<div class="viewcode-block" id="UnauthenticatedUser"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.UnauthenticatedUser">[docs]</a><span class="k">class</span> <span class="nc">UnauthenticatedUser</span><span class="p">(</span><span class="n">AuthorizationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Raised when the user is not authenticated during authorization.</span>
+
+<span class="sd">  Not part of the OAuth specification.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+</div>
+<div class="viewcode-block" id="InvalidRequest"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.InvalidRequest">[docs]</a><span class="k">class</span> <span class="nc">InvalidRequest</span><span class="p">(</span><span class="n">AuthorizationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The request is missing a required parameter, includes an invalid</span>
+<span class="sd">  parameter value, includes a parameter more than once, or is otherwise</span>
+<span class="sd">  malformed.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;invalid_request&#39;</span>
+
+</div>
+<div class="viewcode-block" id="UnauthorizedClient"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.UnauthorizedClient">[docs]</a><span class="k">class</span> <span class="nc">UnauthorizedClient</span><span class="p">(</span><span class="n">AuthorizationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The client is not authorized to request an authorization code using this</span>
+<span class="sd">  method.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;unauthorized_client&#39;</span>
+
+</div>
+<div class="viewcode-block" id="AccessDenied"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.AccessDenied">[docs]</a><span class="k">class</span> <span class="nc">AccessDenied</span><span class="p">(</span><span class="n">AuthorizationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The resource owner or authorization server denied the request. &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;access_denied&#39;</span>
+
+</div>
+<div class="viewcode-block" id="UnsupportedResponseType"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.UnsupportedResponseType">[docs]</a><span class="k">class</span> <span class="nc">UnsupportedResponseType</span><span class="p">(</span><span class="n">AuthorizationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The authorization server does not support obtaining an authorization code</span>
+<span class="sd">  using this method.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;unsupported_response_type&#39;</span>
+
+</div>
+<div class="viewcode-block" id="InvalidScope"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.InvalidScope">[docs]</a><span class="k">class</span> <span class="nc">InvalidScope</span><span class="p">(</span><span class="n">AuthorizationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The requested scope is invalid, unknown, or malformed. &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;invalid_scope&#39;</span>
+
+</div>
+<div class="viewcode-block" id="ServerError"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.ServerError">[docs]</a><span class="k">class</span> <span class="nc">ServerError</span><span class="p">(</span><span class="n">AuthorizationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;  The authorization server encountered an unexpected condition that</span>
+<span class="sd">  prevented it from fulfilling the request. (This error code is needed because</span>
+<span class="sd">  a 500 Internal Server Error HTTP status code cannot be returned to the client</span>
+<span class="sd">  via an HTTP redirect.)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;server_error&#39;</span>
+
+</div>
+<div class="viewcode-block" id="TemporarilyUnavailable"><a class="viewcode-back" href="../../djoauth2.html#djoauth2.authorization_code_generator.TemporarilyUnavailable">[docs]</a><span class="k">class</span> <span class="nc">TemporarilyUnavailable</span><span class="p">(</span><span class="n">AuthorizationException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; The authorization server is currently unable to handle the request due to</span>
+<span class="sd">  a temporary overloading or maintenance of the server. (This error code is</span>
+<span class="sd">  needed because a 503 Service Unavailable HTTP status code cannot be returned</span>
+<span class="sd">  to the client via an HTTP redirect.) &quot;&quot;&quot;</span>
+  <span class="n">error_name</span> <span class="o">=</span> <span class="s">&#39;temporarily_unavailable&#39;</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">DJOAuth2 0.1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Peter Downs.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>
