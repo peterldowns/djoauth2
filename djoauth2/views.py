@@ -202,14 +202,11 @@ def generate_access_token_from_authorization_code(request, client):
         '"{}" is not a valid "code"'.format(authorization_code_value))
 
   if authorization_code.is_expired():
-    # TODO(peter): implement an access counter and follow the recommendation
-    # of http://tools.ietf.org/html/rfc6749#section-10.5:
-    #
-    #     If the authorization server observes multiple attempts to exchange an
-    #     authorization code for an access token, the authorization server
-    #     SHOULD attempt to revoke all access tokens already granted based on
-    #     the compromised authorization code.
-    #
+
+    if authorization_code.invalidated:
+      for access_token in authorization_code.access_tokens.all():
+        access_token.invalidate()
+
     raise InvalidGrant('provided "code" is expired')
 
   # From http://tools.ietf.org/html/rfc6749#section-4.1.3:
@@ -242,14 +239,15 @@ def generate_access_token_from_authorization_code(request, client):
       user=authorization_code.user,
       client=authorization_code.client)
   new_access_token.scopes = authorization_code.scopes.all()
+  new_access_token.authorization_code = authorization_code
   new_access_token.save()
 
-  # TODO(peter): instead of deleting the authorization code (making any further
-  # attempts to use it fail with a 'Does not exist' error), store a
-  # relationship to the created AccessToken object and mark the token as
-  # 'expired'. This allows for later rvocation of the AccessToken should there
-  # be multiple attempts to re-use this AuthorizationCode.
-  authorization_code.delete()
+  # Mark this token as expired so that any future requests with the same token
+  # can be handled with the correct behavior. From
+  # http://tools.ietf.org/html/rfc6749#section-4.1.2 :
+
+  #     The client MUST NOT use the authorization code more than once.
+  authorization_code.invalidate()
 
   return new_access_token
 
@@ -265,11 +263,18 @@ def generate_access_token_from_refresh_token(request, client):
 
   try:
     existing_access_token = AccessToken.objects.get(
+        invalidated=False,
         refresh_token=refresh_token_value,
         client=client)
   except AccessToken.DoesNotExist:
     raise InvalidGrant('"{}" is not a valid "refresh_token"'.format(
       refresh_token_value))
+
+  # TODO(peter): when a request is detected from a refresh token that has
+  # already been invalidated, fire off a Signal object to allow for alerting
+  # the Client. See:
+  #   * https://docs.djangoproject.com/en/dev/topics/signals/#defining-and-sending-signals
+  #   * http://tools.ietf.org/html/rfc6749#section-10.4
 
   if not existing_access_token.refreshable:
     raise InvalidGrant('access token is not refreshable')
@@ -323,26 +328,11 @@ def generate_access_token_from_refresh_token(request, client):
   new_access_token = AccessToken.objects.create(
       user=existing_access_token.user,
       client=existing_access_token.client)
+  new_access_token.authorization_code = existing_access_token.authorization_code
   new_access_token.scopes = scope_objects
   new_access_token.save()
 
-  # TODO(peter): instead of deleting the existing access token / refresh token
-  # pair (that was just used to create the new access token), store a reference
-  # to the newly created access token and mark the existing token as 'expired'.
-  # This allows tokens to remain in the DB for later analysis, but still
-  # prevents a refresh token from being used multiple times. In the event that
-  # an 'expired' refresh token is used, it would be asy to alert the Client, as
-  # recommended by http://tools.ietf.org/html/rfc6749#section-10.4 :
-  #
-  #     For example, the authorization server could employ refresh token
-  #     rotation in which a new refresh token is issued with every access token
-  #     refresh response.  The previous refresh token is invalidated but
-  #     retained by the authorization server.  If a refresh token is
-  #     compromised and subsequently used by both the attacker and the
-  #     legitimate client, one of them will present an invalidated refresh
-  #     token, which will inform the authorization server of the breach.
-  #
-  existing_access_token.delete()
+  existing_access_token.invalidate()
 
   return new_access_token
 

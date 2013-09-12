@@ -61,6 +61,7 @@ class AuthorizationCode(models.Model):
   date_created = models.DateTimeField(auto_now_add=True)
   lifetime = models.PositiveIntegerField(
       default=lambda: settings.DJOAUTH2_AUTHORIZATION_CODE_LIFETIME)
+  invalidated = models.BooleanField(default=False)
   redirect_uri = models.URLField(null=True, blank=True)
   scopes = models.ManyToManyField(Scope, related_name='authorization_codes')
   value = models.CharField(
@@ -77,8 +78,14 @@ class AuthorizationCode(models.Model):
   def has_scope(self, *scope_names):
     return self.get_scope_names_set() >= set(scope_names)
 
+  def invalidate(self):
+    self.invalidated = True
+    self.save()
+    return self.invalidated
+
   def is_expired(self):
-    return now() >= (self.date_created + timedelta(seconds=self.lifetime))
+    return (self.invalidated or
+            now() >= (self.date_created + timedelta(seconds=self.lifetime)))
 
   def __unicode__(self):
     return unicode(self.value)
@@ -92,6 +99,9 @@ class AccessToken(models.Model):
   date_created = models.DateTimeField(auto_now_add=True)
   lifetime = models.PositiveIntegerField(
       default=lambda: settings.DJOAUTH2_ACCESS_TOKEN_LIFETIME)
+  invalidated = models.BooleanField(default=False)
+  authorization_code = models.ForeignKey(
+      AuthorizationCode, related_name='access_tokens', blank=True, null=True)
   refreshable = models.BooleanField(
       default=lambda: settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE)
   refresh_token = models.CharField(
@@ -117,8 +127,14 @@ class AccessToken(models.Model):
   def has_scope(self, *scope_names):
     return self.get_scope_names_set() >= set(scope_names)
 
+  def invalidate(self):
+    self.invalidated = True
+    self.save()
+    return self.invalidated
+
   def is_expired(self):
-    return now() >= (self.date_created + timedelta(seconds=self.lifetime))
+    return (self.invalidated or
+            now() >= (self.date_created + timedelta(seconds=self.lifetime)))
 
   def __unicode__(self):
     return unicode(self.value)

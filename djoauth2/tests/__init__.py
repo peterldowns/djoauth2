@@ -31,9 +31,9 @@ class DJOAuth2TestClient(TestClient):
 
     # For internal use
     self.history = []
-    self.access_token = None
-    self.refresh_token = None
-    self.lifetime = None
+    self.access_token_value = None
+    self.access_token_lifetime = None
+    self.refresh_token_value = None
     super(DJOAuth2TestClient, self).__init__()
 
   @property
@@ -136,14 +136,14 @@ class DJOAuth2TestClient(TestClient):
 
     if response.status_code == 200:
       data = json.loads(response.content)
-      self.access_token = data.get('access_token')
-      self.refresh_token = data.get('refresh_token')
-      self.lifetime = data.get('expires_in')
+      self.access_token_value = data.get('access_token')
+      self.access_token_lifetime = data.get('expires_in')
+      self.refresh_token_value = data.get('refresh_token')
       return data
     else:
-      self.access_token = None
-      self.refresh_token = None
-      self.lifetime = None
+      self.access_token_value = None
+      self.access_token_lifetime = None
+      self.refresh_token_value = None
       return None
 
 
@@ -222,9 +222,9 @@ class DJOAuth2TestCase(TestCase):
   def assert_token_success(self, response):
     self.assertEqual(response.status_code, 200, response)
     # Check the response contents
-    self.assertTrue(self.oauth_client.access_token)
-    self.assertTrue(self.oauth_client.refresh_token)
-    self.assertTrue(self.oauth_client.lifetime)
+    self.assertTrue(self.oauth_client.access_token_value)
+    self.assertTrue(self.oauth_client.access_token_lifetime)
+    self.assertTrue(self.oauth_client.refresh_token_value)
 
   def assert_token_failure(self, response, expected_error_code=None):
     self.assertNotEqual(response.status_code, 200, response)
@@ -234,9 +234,9 @@ class DJOAuth2TestCase(TestCase):
       # Should have received a 4XX HTTP status code
       self.assertTrue(str(response.status_code)[0] == '4')
     # Check the response contents
-    self.assertIsNone(self.oauth_client.access_token)
-    self.assertIsNone(self.oauth_client.refresh_token)
-    self.assertIsNone(self.oauth_client.lifetime)
+    self.assertIsNone(self.oauth_client.access_token_value)
+    self.assertIsNone(self.oauth_client.access_token_lifetime)
+    self.assertIsNone(self.oauth_client.refresh_token_value)
 
 
 class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
@@ -395,6 +395,28 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         self.client, authcode.value)
 
     self.assert_token_failure(response)
+
+  def test_multiple_use_of_single_authorization_code(self):
+    """ If an authorization code is used more than once, the authorization
+    server MUST deny the request and SHOULD revoke (when possible) all tokens
+    previously issued based on that authorization code.
+    -- http://tools.ietf.org/html/rfc6749#section-4.1.2
+    """
+    self.initialize()
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client, authcode.value)
+    self.assert_token_success(response)
+
+    response2 = self.oauth_client.request_token_from_authcode(
+        self.client, authcode.value)
+    self.assert_token_failure(response2)
+
+    authcode = AuthorizationCode.objects.get(pk=authcode.pk)
+    for access_token in authcode.access_tokens.all():
+      self.assertTrue(access_token.is_expired())
 
   def test_invalid_grant(self):
     """ If an Authorization Code / Grant does not exist, then the request will
@@ -586,6 +608,16 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
   def test_multiple_access_same_token(self):
     """ Each refresh token can only be used once. Attempting to refresh with a
     token that has already been used will result in a failure.
+
+    From http://tools.ietf.org/html/rfc6749#section-10.4 :
+
+        The authorization server MUST verify the binding between the refresh
+        token and client identity whenever the client identity can be
+        authenticated. For example, the authorization server could employ
+        refresh token rotation in which a new refresh token is issued with
+        every access token refresh response.  The previous refresh token is
+        invalidated but retained by the authorization server.
+
     """
     self.initialize(scope_names=['verify', 'autologin'])
     settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = True
@@ -603,6 +635,15 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
         access_token_1.refresh_token)
 
     self.assert_token_failure(response2)
+
+    existing_token_filter = AccessToken.objects.filter(
+        refresh_token=access_token_1.refresh_token)
+
+    self.assertTrue(existing_token_filter.exists())
+    self.assertEqual(len(existing_token_filter), 1)
+    self.assertEqual(existing_token_filter[0].pk, access_token_1.pk)
+    self.assertTrue(existing_token_filter[0].invalidated)
+
 
 
 def make_oauth_protected_endpoint(*args, **kwargs):
