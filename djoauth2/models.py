@@ -14,7 +14,6 @@ from djoauth2.helpers import make_client_secret
 
 
 class Client(models.Model):
-  # TODO(peter): include a field for an image / logo of some sort.
   user = models.ForeignKey(User)
   name = models.CharField(max_length=256)
   description = models.TextField(null=True, blank=True)

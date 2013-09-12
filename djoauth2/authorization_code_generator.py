@@ -160,8 +160,6 @@ class AuthorizationCodeGenerator(object):
       raise InvalidRequest('"redirect_uri" does not matched the registered URI')
 
     redirect_uri = self.client.redirect_uri or self.request_redirect_uri
-    # TODO(peter): add this requirement as an on_save validation on the Client
-    # object.
     if not absolute_http_url_re.match(redirect_uri):
       raise InvalidRequest('"redirect_uri" must be absolute')
 
