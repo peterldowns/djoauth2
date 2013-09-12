@@ -18,11 +18,7 @@ class Client(models.Model):
   user = models.ForeignKey(User)
   name = models.CharField(max_length=256)
   description = models.TextField(null=True, blank=True)
-  # From http://tools.ietf.org/html/rfc6749#section-3.1.2.2 :
-  #
-  #   The authorization server SHOULD require all clients to register their
-  #   redirection endpoint prior to utilizing the authorization endpoint.
-  #
+  image_url = models.URLField(null=True, blank=True)
   redirect_uri = models.URLField(null=False, blank=False)
   key = models.CharField(
     db_index=True,
