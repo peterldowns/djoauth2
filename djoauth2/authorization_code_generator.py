@@ -127,14 +127,19 @@ class AuthorizationCodeGenerator(object):
     if settings.DJOAUTH2_REQUIRE_STATE and not self.state:
       raise InvalidRequest('"state" must be included')
 
-    scope_names = set(request.REQUEST.get('scope', '').split(' '))
-    self.valid_scope_objects = Scope.objects.filter(name__in=scope_names)
+    requested_scope_string = request.POST.get('scope', '')
+    if not requested_scope_string:
+      raise InvalidRequest('no "scope" provided')
+
+    requested_scope_names = set(requested_scope_string.split(' '))
+    self.valid_scope_objects = Scope.objects.filter(
+        name__in=requested_scope_names)
     valid_scope_names = {scope.name for scope in self.valid_scope_objects}
-    if valid_scope_names < scope_names:
-      raise InvalidScope('the following scopes do not exist: {}'.format(
+    if valid_scope_names < requested_scope_names:
+      raise InvalidScope('The following scopes are invalid: {}'.format(
           ', '.join('"{}"'.format(name)
-                    for name in (scope_names - valid_scope_names))
-        ))
+                    for name in (scope_names - valid_scope_names))))
+
 
     client_id = request.REQUEST.get('client_id')
     if not client_id:

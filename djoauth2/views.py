@@ -303,7 +303,6 @@ def generate_access_token_from_refresh_token(request, client):
   scope_objects = existing_access_token.scopes.all()
   new_scope_names = request.POST.get('scope', '')
   if new_scope_names:
-    # TODO(peter): use set-based method from the AuthorizationCodeGenerator:107.
     new_scope_names = new_scope_names.split(' ')
     if not existing_access_token.has_scope(*new_scope_names):
       raise InvalidScope('requested scopes exceed initial grant')
@@ -314,6 +313,19 @@ def generate_access_token_from_refresh_token(request, client):
         scope_objects.append(Scope.objects.get(name=scope_name))
       except Scope.DoesNotExist:
         raise InvalidScope('"{}" is not a valid scope'.format(scope_name))
+
+  requested_scope_string = request.POST.get('scope', '')
+  if requested_scope_string:
+    requested_scope_names = set(requested_scope_string.split(' '))
+    if not existing_access_token.has_scope(*requested_scope_names):
+      raise InvalidScope('requested scopes exceed initial grant')
+
+    scope_objects = Scope.objects.filter(name__in=requested_scope_names)
+    valid_scope_names = {scope.name for scope in scope_objects}
+    if valid_scope_names < requested_scope_names:
+      raise InvalidScope('The following scopes are invalid: {}'.format(
+          ', '.join('"{}"'.format(name)
+                    for name in (scope_names - valid_scope_names))))
 
 
   # The new AccessToken is only refreshable if at the time of refresh the
