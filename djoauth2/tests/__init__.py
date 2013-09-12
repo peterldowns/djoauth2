@@ -487,12 +487,9 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     self.assertEqual(scope_string_1, scope_string_2)
 
   def test_request_with_subset_of_initial_scope(self):
-    """ Refresh token requests that specify a subset of the scope of the
-    initial access token should result in a new access token being granted with
-    the requested scope.
-
-    This is implementation-defined behavior, not described by the
-    specification.
+    """ If a new refresh token is issued, the refresh token scope MUST be
+    identical to that of the refresh token included by the client in the
+    request. -- http://tools.ietf.org/html/rfc6749#section-6
     """
     scope_list_1 = ['verify', 'autologin']
     self.initialize(scope_names=scope_list_1)
@@ -511,19 +508,12 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
           'scope': ' '.join(scope_list_2),
         })
 
-    self.assert_token_success(response)
-
-    refresh_scope_string = json.loads(response.content).get('scope')
-    self.assertIsNotNone(refresh_scope_string)
-
-    refresh_scope_list = refresh_scope_string.split(' ')
-    self.assertEqual(set(scope_list_2), set(refresh_scope_list))
-    self.assertGreater(set(scope_list_1), set(refresh_scope_list))
+    self.assert_token_failure(response)
 
   def test_request_with_superset_of_initial_scope(self):
-    """ RefreshToken-based requests for new AccessTokens that ask
-    for scopes beyond those granted to the initial AccessToken/RefreshToken
-    pair should fail.
+    """ If a new refresh token is issued, the refresh token scope MUST be
+    identical to that of the refresh token included by the client in the
+    request. -- http://tools.ietf.org/html/rfc6749#section-6
     """
     scope_list_1 = ['verify', 'autologin']
     self.initialize(scope_names=scope_list_1)

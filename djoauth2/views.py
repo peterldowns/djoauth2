@@ -284,21 +284,16 @@ def generate_access_token_from_refresh_token(request, client):
   #           omitted is treated as equal to the scope originally granted
   #           by the resource owner.
   #
-  # This implementation allows the Client ot request any scopes that together
-  # comprise a subset of the previously-granted scopes. The specification
-  # does not discuss this particular behavior, but the wording is such that
-  # I believe this to be a reasonable behavior. That said, later in the same
-  # section the specification includes the following:
+  # This opens the possibility that a Client might successfully request a
+  # subset of the existing scopes, but later in the same section comes the
+  # following:
   #
   #      If a new refresh token is issued, the refresh token scope MUST be
   #      identical to that of the refresh token included by the client in the
   #      request.
   #
-  # I am open to being convinced that allowing scope de-escalation is against
-  # the specification, but I cannot see why it would be necessary to forbid
-  # it from a security standpoint.
-  #
-  # TODO(peter): reach a decision regarding this behavior.
+  # For this reason, the requested scope is required to match the existing scope
+  # or not be provided at all.
 
   scope_objects = existing_access_token.scopes.all()
   new_scope_names = request.POST.get('scope', '')
@@ -317,15 +312,8 @@ def generate_access_token_from_refresh_token(request, client):
   requested_scope_string = request.POST.get('scope', '')
   if requested_scope_string:
     requested_scope_names = set(requested_scope_string.split(' '))
-    if not existing_access_token.has_scope(*requested_scope_names):
-      raise InvalidScope('requested scopes exceed initial grant')
-
-    scope_objects = Scope.objects.filter(name__in=requested_scope_names)
-    valid_scope_names = {scope.name for scope in scope_objects}
-    if valid_scope_names < requested_scope_names:
-      raise InvalidScope('The following scopes are invalid: {}'.format(
-          ', '.join('"{}"'.format(name)
-                    for name in (scope_names - valid_scope_names))))
+    if not requested_scope_names == existing_access_token.get_scope_names_set():
+      raise InvalidScope('requested scopes do not match initial grant')
 
 
   # The new AccessToken is only refreshable if at the time of refresh the
