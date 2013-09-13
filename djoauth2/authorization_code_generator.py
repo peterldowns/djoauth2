@@ -1,8 +1,12 @@
 # coding: utf-8
 from urllib import urlencode
 
-from django.http.request import absolute_http_url_re
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
+from django.http.request import absolute_http_url_re
+from django.shortcuts import render
+from django.forms import Form
+from django.views.decorators.http import require_http_methods
 
 from djoauth2.conf import settings
 from djoauth2.exceptions import DJOAuthException
@@ -12,20 +16,7 @@ from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
 from djoauth2.models import Scope
 
-# TODO(peter): provide a method for easy checking to see if a Client has
-# received permission for the requested scopes in the past. This is NOT a
-# critical part of the authorization endpoint implementation, but it does allow
-# for much more convenience for users (they will not need to re-authorize.)
 
-# TODO(peter): implement a helper method for easily creating these endpoints so
-# that users do not need to interact with this object, which is complicated and
-# painful. Alternatively, simplify this object's usage API.
-#
-#     def make_auth_endpoint(redirect_uri,
-#                            endpoint_uri,
-#                            authorization_template,
-#                            past_socpe_authorized)
-#
 class AuthorizationCodeGenerator(object):
   """ Allows easy authorization request validation, code generation, and
   redirection creation.
@@ -127,7 +118,7 @@ class AuthorizationCodeGenerator(object):
     if settings.DJOAUTH2_REQUIRE_STATE and not self.state:
       raise InvalidRequest('"state" must be included')
 
-    requested_scope_string = request.POST.get('scope', '')
+    requested_scope_string = request.REQUEST.get('scope', '')
     if not requested_scope_string:
       raise InvalidRequest('no "scope" provided')
 
@@ -182,7 +173,7 @@ class AuthorizationCodeGenerator(object):
       raise ValueError('request must have been passed to the "validate" method')
 
     if as_dict:
-      return self.request.REQUEST.dict()
+      return dict(self.request.REQUEST.items())
 
     return urlencode(self.request.REQUEST.items())
 
@@ -248,6 +239,68 @@ class AuthorizationCodeGenerator(object):
       response_params['state'] = self.state
     return HttpResponseRedirect(
         update_parameters(self.redirect_uri, response_params))
+
+
+
+# TODO(peter): add a callback for successful authorization and unsuccessful
+# authorization -- or just use signals instead? Yeah, use signals.
+def make_authorization_endpoint(missing_redirect_uri,
+                       authorization_endpoint_uri,
+                       authorization_template_name):
+  """ Returns a endpoint that handles OAuth authorization requests.
+
+  @missing_redirect_uri: a string, the URI to which to redirect the user when
+      the request is made by a client without a valid redirect URI.
+
+  @authorization_endpoint_uri: a string, the URI of this endpoint. Used by the
+      authorization form so that the form is submitted to this same endpoint.
+
+  @authorization_template_name: a string, the name of the template to render
+      when handling authorization requests.
+
+  The template described by @authorization_template_name is rendered with a
+  Django RequestContext with the following variables:
+
+      form: a Django form with no fields.
+      client: The djoauth2.models.Client requesting access to the user's
+          scopes
+      scopes: A list of djoauth2.models.Scope, one for each of the scopes
+          requested by the client.
+      form_action: The URI to which the form should be submitted -- use this
+          value in the 'action' attribute on a <form> element.
+
+  """
+  # TODO(peter): improve this documentation.
+  @login_required
+  @require_http_methods(['GET', 'POST'])
+  def authorization_endpoint(request):
+    auth_code_generator = AuthorizationCodeGenerator(missing_redirect_uri)
+
+    try:
+      auth_code_generator.validate(request)
+    except AuthorizationException as e:
+      print e
+      raise e
+      return auth_code_generator.make_error_redirect()
+
+    if request.method == 'GET':
+      return render(request, authorization_template_name, {
+          'form': Form(),
+          'client': auth_code_generator.client,
+          'scopes': auth_code_generator.valid_scope_objects,
+          'form_action': update_parameters(
+              authorization_endpoint_uri,
+              auth_code_generator.get_request_uri_parameters(as_dict=True)),
+        })
+
+    if request.method == 'POST':
+      form = Form(request)
+      if form.is_valid() and request.POST.get('user_action') == 'Accept':
+        return auth_code_generator.make_success_redirect()
+      else:
+        return auth_code_generator.make_error_redirect()
+
+  return authorization_endpoint
 
 
 class AuthorizationException(DJOAuthException):
