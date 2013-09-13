@@ -20,9 +20,6 @@ class AccessTokenAuthenticator(object):
   def __init__(self, required_scope_names=()):
     """ Store the names of the scopes that will be checked. """
     self.required_scope_names = required_scope_names
-    for name in required_scope_names:
-      if not Scope.objects.filter(name=name).exists():
-        raise ValueError('Scope with name "{}" does not exist.'.format(name))
 
 
   def validate(self, request):
@@ -51,6 +48,9 @@ class AccessTokenAuthenticator(object):
         >>>
 
     """
+    for name in self.required_scope_names:
+      if not Scope.objects.filter(name=name).exists():
+        raise ValueError('Scope with name "{}" does not exist.'.format(name))
 
     # From http://tools.ietf.org/html/rfc6750#section-3.1 :
     #
