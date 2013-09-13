@@ -24,7 +24,6 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="DJOAuth2 0.1.0 documentation" href="index.html" />
-    <link rel="next" title="tests Package" href="djoauth2.tests.html" />
     <link rel="prev" title="Welcome to DJOAuth2’s documentation!" href="index.html" /> 
   </head>
   <body>
@@ -37,9 +36,6 @@
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="right" >
-          <a href="djoauth2.tests.html" title="tests Package"
-             accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="index.html" title="Welcome to DJOAuth2’s documentation!"
              accesskey="P">previous</a> |</li>
@@ -400,6 +396,34 @@ using this method.</p>
 
 </dd></dl>
 
+<dl class="function">
+<dt id="djoauth2.authorization_code_generator.make_authorization_endpoint">
+<tt class="descclassname">djoauth2.authorization_code_generator.</tt><tt class="descname">make_authorization_endpoint</tt><big>(</big><em>missing_redirect_uri</em>, <em>authorization_endpoint_uri</em>, <em>authorization_template_name</em><big>)</big><a class="headerlink" href="#djoauth2.authorization_code_generator.make_authorization_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a endpoint that handles OAuth authorization requests.</p>
+<dl class="docutils">
+<dt>&#64;missing_redirect_uri: a string, the URI to which to redirect the user when</dt>
+<dd>the request is made by a client without a valid redirect URI.</dd>
+<dt>&#64;authorization_endpoint_uri: a string, the URI of this endpoint. Used by the</dt>
+<dd>authorization form so that the form is submitted to this same endpoint.</dd>
+<dt>&#64;authorization_template_name: a string, the name of the template to render</dt>
+<dd>when handling authorization requests.</dd>
+</dl>
+<p>The template described by &#64;authorization_template_name is rendered with a
+Django RequestContext with the following variables:</p>
+<blockquote>
+<div><p>form: a Django form with no fields.
+client: The djoauth2.models.Client requesting access to the user&#8217;s</p>
+<blockquote>
+<div>scopes</div></blockquote>
+<dl class="docutils">
+<dt>scopes: A list of djoauth2.models.Scope, one for each of the scopes</dt>
+<dd>requested by the client.</dd>
+<dt>form_action: The URI to which the form should be submitted &#8211; use this</dt>
+<dd>value in the &#8216;action&#8217; attribute on a &lt;form&gt; element.</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
 </div>
 <div class="section" id="module-djoauth2.conf">
 <span id="conf-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">conf</span></tt> Module<a class="headerlink" href="#module-djoauth2.conf" title="Permalink to this headline">¶</a></h2>
@@ -588,7 +612,7 @@ more at:</p>
 <dt id="djoauth2.models.AccessToken">
 <em class="property">class </em><tt class="descclassname">djoauth2.models.</tt><tt class="descname">AccessToken</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AccessToken"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AccessToken" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.db.models.base.Model</span></tt></p>
-<p>AccessToken(id, client_id, date_created, lifetime, refreshable, refresh_token, user_id, value)</p>
+<p>AccessToken(id, client_id, date_created, lifetime, invalidated, authorization_code_id, refreshable, refresh_token, user_id, value)</p>
 <dl class="exception">
 <dt id="djoauth2.models.AccessToken.DoesNotExist">
 <em class="property">exception </em><tt class="descname">DoesNotExist</tt><a class="headerlink" href="#djoauth2.models.AccessToken.DoesNotExist" title="Permalink to this definition">¶</a></dt>
@@ -600,6 +624,11 @@ more at:</p>
 <em class="property">exception </em><tt class="descclassname">AccessToken.</tt><tt class="descname">MultipleObjectsReturned</tt><a class="headerlink" href="#djoauth2.models.AccessToken.MultipleObjectsReturned" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.MultipleObjectsReturned</span></tt></p>
 </dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AccessToken.authorization_code">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">authorization_code</tt><a class="headerlink" href="#djoauth2.models.AccessToken.authorization_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="djoauth2.models.AccessToken.client">
@@ -627,13 +656,18 @@ more at:</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="djoauth2.models.AccessToken.invalidate">
+<tt class="descclassname">AccessToken.</tt><tt class="descname">invalidate</tt><big>(</big><big>)</big><a class="headerlink" href="#djoauth2.models.AccessToken.invalidate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="djoauth2.models.AccessToken.is_expired">
 <tt class="descclassname">AccessToken.</tt><tt class="descname">is_expired</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AccessToken.is_expired"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AccessToken.is_expired" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="djoauth2.models.AccessToken.objects">
-<tt class="descclassname">AccessToken.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d1e790&gt;</em><a class="headerlink" href="#djoauth2.models.AccessToken.objects" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">AccessToken.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d1d950&gt;</em><a class="headerlink" href="#djoauth2.models.AccessToken.objects" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -652,7 +686,7 @@ more at:</p>
 <dt id="djoauth2.models.AuthorizationCode">
 <em class="property">class </em><tt class="descclassname">djoauth2.models.</tt><tt class="descname">AuthorizationCode</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AuthorizationCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AuthorizationCode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.db.models.base.Model</span></tt></p>
-<p>AuthorizationCode(id, client_id, user_id, date_created, lifetime, redirect_uri, value)</p>
+<p>AuthorizationCode(id, client_id, user_id, date_created, lifetime, invalidated, redirect_uri, value)</p>
 <dl class="exception">
 <dt id="djoauth2.models.AuthorizationCode.DoesNotExist">
 <em class="property">exception </em><tt class="descname">DoesNotExist</tt><a class="headerlink" href="#djoauth2.models.AuthorizationCode.DoesNotExist" title="Permalink to this definition">¶</a></dt>
@@ -664,6 +698,11 @@ more at:</p>
 <em class="property">exception </em><tt class="descclassname">AuthorizationCode.</tt><tt class="descname">MultipleObjectsReturned</tt><a class="headerlink" href="#djoauth2.models.AuthorizationCode.MultipleObjectsReturned" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.core.exceptions.MultipleObjectsReturned</span></tt></p>
 </dd></dl>
+
+<dl class="attribute">
+<dt id="djoauth2.models.AuthorizationCode.access_tokens">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">access_tokens</tt><a class="headerlink" href="#djoauth2.models.AuthorizationCode.access_tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="djoauth2.models.AuthorizationCode.client">
@@ -691,13 +730,18 @@ more at:</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="djoauth2.models.AuthorizationCode.invalidate">
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">invalidate</tt><big>(</big><big>)</big><a class="headerlink" href="#djoauth2.models.AuthorizationCode.invalidate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="djoauth2.models.AuthorizationCode.is_expired">
 <tt class="descclassname">AuthorizationCode.</tt><tt class="descname">is_expired</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#AuthorizationCode.is_expired"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.AuthorizationCode.is_expired" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="djoauth2.models.AuthorizationCode.objects">
-<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d198d0&gt;</em><a class="headerlink" href="#djoauth2.models.AuthorizationCode.objects" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">AuthorizationCode.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d188d0&gt;</em><a class="headerlink" href="#djoauth2.models.AuthorizationCode.objects" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -716,7 +760,7 @@ more at:</p>
 <dt id="djoauth2.models.Client">
 <em class="property">class </em><tt class="descclassname">djoauth2.models.</tt><tt class="descname">Client</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/djoauth2/models.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#djoauth2.models.Client" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">django.db.models.base.Model</span></tt></p>
-<p>Client(id, user_id, name, description, redirect_uri, key, secret)</p>
+<p>Client(id, user_id, name, description, image_url, redirect_uri, key, secret)</p>
 <dl class="exception">
 <dt id="djoauth2.models.Client.DoesNotExist">
 <em class="property">exception </em><tt class="descname">DoesNotExist</tt><a class="headerlink" href="#djoauth2.models.Client.DoesNotExist" title="Permalink to this definition">¶</a></dt>
@@ -741,7 +785,7 @@ more at:</p>
 
 <dl class="attribute">
 <dt id="djoauth2.models.Client.objects">
-<tt class="descclassname">Client.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d1b5d0&gt;</em><a class="headerlink" href="#djoauth2.models.Client.objects" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">Client.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d12590&gt;</em><a class="headerlink" href="#djoauth2.models.Client.objects" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -780,14 +824,11 @@ more at:</p>
 
 <dl class="attribute">
 <dt id="djoauth2.models.Scope.objects">
-<tt class="descclassname">Scope.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d1b910&gt;</em><a class="headerlink" href="#djoauth2.models.Scope.objects" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">Scope.</tt><tt class="descname">objects</tt><em class="property"> = &lt;django.db.models.manager.Manager object at 0x102d128d0&gt;</em><a class="headerlink" href="#djoauth2.models.Scope.objects" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
-<div class="section" id="urls-module">
-<h2><tt class="xref py py-mod docutils literal"><span class="pre">urls</span></tt> Module<a class="headerlink" href="#urls-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-djoauth2.views">
 <span id="views-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">views</span></tt> Module<a class="headerlink" href="#module-djoauth2.views" title="Permalink to this headline">¶</a></h2>
@@ -917,17 +958,6 @@ server.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="subpackages">
-<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="djoauth2.tests.html">tests Package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="djoauth2.tests.html#module-djoauth2.tests.test_urls"><tt class="docutils literal"><span class="pre">test_urls</span></tt> Module</a></li>
-</ul>
-</li>
-</ul>
-</div>
-</div>
 </div>
 
 
@@ -948,11 +978,7 @@ server.</p>
 <li><a class="reference internal" href="#module-djoauth2.exceptions"><tt class="docutils literal"><span class="pre">exceptions</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-djoauth2.helpers"><tt class="docutils literal"><span class="pre">helpers</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-djoauth2.models"><tt class="docutils literal"><span class="pre">models</span></tt> Module</a></li>
-<li><a class="reference internal" href="#urls-module"><tt class="docutils literal"><span class="pre">urls</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-djoauth2.views"><tt class="docutils literal"><span class="pre">views</span></tt> Module</a></li>
-<li><a class="reference internal" href="#subpackages">Subpackages</a><ul>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
@@ -960,9 +986,6 @@ server.</p>
   <h4>Previous topic</h4>
   <p class="topless"><a href="index.html"
                         title="previous chapter">Welcome to DJOAuth2&#8217;s documentation!</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="djoauth2.tests.html"
-                        title="next chapter">tests Package</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/djoauth2.txt"
@@ -994,9 +1017,6 @@ server.</p>
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="right" >
-          <a href="djoauth2.tests.html" title="tests Package"
-             >next</a> |</li>
         <li class="right" >
           <a href="index.html" title="Welcome to DJOAuth2’s documentation!"
              >previous</a> |</li>

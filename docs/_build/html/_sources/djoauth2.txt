@@ -73,13 +73,6 @@ djoauth2 Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`urls` Module
-------------------
-
-.. automodule:: djoauth2.urls
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 :mod:`views` Module
 -------------------
@@ -88,11 +81,4 @@ djoauth2 Package
     :members:
     :undoc-members:
     :show-inheritance:
-
-Subpackages
------------
-
-.. toctree::
-
-    djoauth2.tests
 

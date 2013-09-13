@@ -82,9 +82,15 @@
   </dt>
 
       
-  <dt><a href="djoauth2.html#djoauth2.models.Scope.access_tokens">access_tokens (djoauth2.models.Scope attribute)</a>
+  <dt><a href="djoauth2.html#djoauth2.models.AuthorizationCode.access_tokens">access_tokens (djoauth2.models.AuthorizationCode attribute)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="djoauth2.html#djoauth2.models.Scope.access_tokens">(djoauth2.models.Scope attribute)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="djoauth2.html#djoauth2.conf.DJOAuth2Conf.ACCESS_TOKENS_REFRESHABLE">ACCESS_TOKENS_REFRESHABLE (djoauth2.conf.DJOAuth2Conf attribute)</a>
   </dt>
@@ -113,14 +119,18 @@
   <dt><a href="djoauth2.html#djoauth2.access_token_authenticator.AccessTokenAuthenticator">AccessTokenAuthenticator (class in djoauth2.access_token_authenticator)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="djoauth2.html#djoauth2.views.AccessTokenException">AccessTokenException</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="djoauth2.html#djoauth2.access_token_authenticator.AuthenticationException">AuthenticationException</a>
+  </dt>
+
+      
+  <dt><a href="djoauth2.html#djoauth2.models.AccessToken.authorization_code">authorization_code (djoauth2.models.AccessToken attribute)</a>
   </dt>
 
       
@@ -239,10 +249,6 @@
 
       
   <dt><a href="djoauth2.html#module-djoauth2.models">djoauth2.models (module)</a>
-  </dt>
-
-      
-  <dt><a href="djoauth2.tests.html#module-djoauth2.tests.test_urls">djoauth2.tests.test_urls (module)</a>
   </dt>
 
       
@@ -418,6 +424,16 @@
   </dt>
 
       
+  <dt><a href="djoauth2.html#djoauth2.models.AccessToken.invalidate">invalidate() (djoauth2.models.AccessToken method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="djoauth2.html#djoauth2.models.AuthorizationCode.invalidate">(djoauth2.models.AuthorizationCode method)</a>
+  </dt>
+
+      </dl></dd>
+      
   <dt><a href="djoauth2.html#djoauth2.views.InvalidClient">InvalidClient</a>
   </dt>
 
@@ -425,12 +441,12 @@
   <dt><a href="djoauth2.html#djoauth2.views.InvalidGrant">InvalidGrant</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="djoauth2.html#djoauth2.access_token_authenticator.InvalidRequest">InvalidRequest</a>, <a href="djoauth2.html#djoauth2.authorization_code_generator.InvalidRequest">[1]</a>, <a href="djoauth2.html#djoauth2.views.InvalidRequest">[2]</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="djoauth2.html#djoauth2.authorization_code_generator.InvalidScope">InvalidScope</a>, <a href="djoauth2.html#djoauth2.views.InvalidScope">[1]</a>
   </dt>
@@ -460,6 +476,10 @@
   </dt>
 
       
+  <dt><a href="djoauth2.html#djoauth2.authorization_code_generator.make_authorization_endpoint">make_authorization_endpoint() (in module djoauth2.authorization_code_generator)</a>
+  </dt>
+
+      
   <dt><a href="djoauth2.html#djoauth2.helpers.make_bearer_token">make_bearer_token() (in module djoauth2.helpers)</a>
   </dt>
 
@@ -467,12 +487,12 @@
   <dt><a href="djoauth2.html#djoauth2.helpers.make_client_key">make_client_key() (in module djoauth2.helpers)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="djoauth2.html#djoauth2.helpers.make_client_secret">make_client_secret() (in module djoauth2.helpers)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="djoauth2.html#djoauth2.authorization_code_generator.AuthorizationCodeGenerator.make_error_redirect">make_error_redirect() (djoauth2.authorization_code_generator.AuthorizationCodeGenerator method)</a>
   </dt>
