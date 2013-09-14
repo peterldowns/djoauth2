@@ -30,7 +30,7 @@ def access_token_endpoint(request):
     #     authorization server MUST require the use of TLS as described in
     #     Section 1.6 when sending requests to the token endpoint.
     #
-    if not request.is_secure():
+    if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
       raise InvalidRequest('all token requests must use TLS')
 
     # From http://tools.ietf.org/html/rfc6749#section-3.2 :
