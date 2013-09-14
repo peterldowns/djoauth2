@@ -49,8 +49,8 @@ class DJOAuth2Conf(AppConf):
   #     the "state" request parameter to deliver this value to the
   #     authorization server when making an authorization request.
   #
-  # If you would like to ignore the specification's recommendations and
-  # introduce a security hole, change this value to False.
+  # If you would like to ignore the specification's recommendations, change
+  # this value to False. We DO NOT recommend this.
   REQUIRE_STATE = True
 
   # From http://tools.ietf.org/html/rfc6749#section-3.1.2.1 :
@@ -71,5 +71,9 @@ class DJOAuth2Conf(AppConf):
   #     when the authorization process is used as a form of delegated end-user
   #     authentication by the client (e.g., third-party sign-in service).
   #
+  # If you'd like to develop your OAuth endpoints locally without having to set
+  # up an SSL server, change this value to False. We DO NOT recommend changing
+  # this value in a production environment -- the security of your users will
+  # be greatly compromised.
   SSL_ONLY = True
 
