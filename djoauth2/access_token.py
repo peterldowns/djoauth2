@@ -81,7 +81,7 @@ class AccessTokenAuthenticator(object):
       #    bearer tokens.  Failing to do so exposes the token to numerous
       #    attacks that could give attackers unintended access.
       #
-      if not request.is_secure():
+      if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
         raise InvalidRequest('insecure request: must use TLS')
 
       http_authorization = request.META.get('HTTP_AUTHORIZATION', '')

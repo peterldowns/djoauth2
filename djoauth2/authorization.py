@@ -129,7 +129,7 @@ class AuthorizationCodeGenerator(object):
     if valid_scope_names < requested_scope_names:
       raise InvalidScope('The following scopes are invalid: {}'.format(
           ', '.join('"{}"'.format(name)
-                    for name in (scope_names - valid_scope_names))))
+                    for name in (requested_scope_names - valid_scope_names))))
 
 
     client_id = request.REQUEST.get('client_id')

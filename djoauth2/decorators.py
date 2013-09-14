@@ -1,7 +1,7 @@
 # coding: utf-8
 from django.utils.functional import wraps
 
-from djoauth2.access_token_authenticator import AccessTokenAuthenticator
+from djoauth2.access_token import AccessTokenAuthenticator
 
 def oauth_scope(*scope_names):
   """ Only allow requests with sufficient OAuth scope access.
