@@ -48,6 +48,8 @@ class AccessTokenAuthenticator(object):
         >>>
 
     """
+    # Ensure that all of the scopes that are being checked against exist.
+    # Otherwise, raise a ValueError.
     for name in self.required_scope_names:
       if not Scope.objects.filter(name=name).exists():
         raise ValueError('Scope with name "{}" does not exist.'.format(name))

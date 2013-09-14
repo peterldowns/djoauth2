@@ -6,7 +6,7 @@ from random import random
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.test import Client as TestClient
 from django.test import TestCase
 from django.test.client import RequestFactory
@@ -127,7 +127,6 @@ class DJOAuth2TestClient(TestClient):
     }
     custom.update(kwargs.pop('custom', {}))
     kwargs['custom'] = custom
-
     return self.access_token_request(client, **kwargs)
 
 
@@ -311,9 +310,9 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
-  def test_insecure_request_fails(self):
-    """ SSL is required when making requests to the access token endpoint. """
+  def test_ssl_required_insecure_request_fails(self):
     self.initialize()
+    settings.DJOAUTH2_SSL_ONLY = True
 
     authcode = self.create_authorization_code(self.user, self.client)
 
@@ -321,6 +320,39 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         self.client, authcode.value, use_ssl=False)
 
     self.assert_token_failure(response)
+
+  def test_ssl_required_secure_request_succeeds(self):
+    self.initialize()
+    settings.DJOAUTH2_SSL_ONLY = True
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client, authcode.value, use_ssl=True)
+
+    self.assert_token_success(response)
+
+  def test_no_ssl_required_secure_request_succeeds(self):
+    self.initialize()
+    settings.DJOAUTH2_SSL_ONLY = False
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client, authcode.value, use_ssl=True)
+
+    self.assert_token_success(response)
+
+  def test_no_ssl_required_insecure_request_succeeds(self):
+    self.initialize()
+    settings.DJOAUTH2_SSL_ONLY = False
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client, authcode.value, use_ssl=False)
+
+    self.assert_token_success(response)
 
   def test_missing_secret(self):
     """ If the access token request does not include a secret, it will fail. """
@@ -475,15 +507,15 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
 
     access_token = self.create_access_token(self.user, self.client)
 
-    response2 = self.oauth_client.request_token_from_refresh_token(
+    response = self.oauth_client.request_token_from_refresh_token(
         self.client,
         access_token.refresh_token,
         custom={
           'scope': None
         })
 
-    self.assert_token_success(response2)
-    refresh_data = json.loads(response2.content)
+    self.assert_token_success(response)
+    refresh_data = json.loads(response.content)
     self.assertEqual(refresh_data['scope'], self.oauth_client.scope_string)
 
   def test_request_with_same_scope_succeeds(self):
@@ -676,6 +708,49 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     self.assert_token_failure(response)
     self.assertTrue(self.received_signal)
 
+  def test_ssl_required_insecure_request_fails(self):
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_SSL_ONLY = True
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client, access_token.refresh_token, use_ssl=False)
+
+    self.assert_token_failure(response)
+
+  def test_ssl_required_secure_request_succeeds(self):
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_SSL_ONLY = True
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client, access_token.refresh_token, use_ssl=True)
+
+    self.assert_token_success(response)
+
+  def test_no_ssl_required_secure_request_succeeds(self):
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_SSL_ONLY = False
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client, access_token.refresh_token, use_ssl=True)
+
+    self.assert_token_success(response)
+
+  def test_no_ssl_required_insecure_request_succeeds(self):
+    self.initialize(scope_names=['verify', 'autologin'])
+    settings.DJOAUTH2_SSL_ONLY = False
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client, access_token.refresh_token, use_ssl=False)
+
+    self.assert_token_success(response)
 
 def make_oauth_protected_endpoint(*args, **kwargs):
   """ Returns a dummy API endpoint that returns True. This endpoint will be
@@ -775,4 +850,77 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     api_response = api_endpoint(api_request)
     self.assertEqual(api_response.status_code, 400, api_response)
     self.assertIn('WWW-Authenticate', api_response)
+
+  def test_ssl_only_ssl_request_succeeds(self):
+    """ Test that secure requests succeed when the backend requires all
+    AccessToken-authenticated requests to be secure, as recommended by
+    http://tools.ietf.org/html/rfc6750#section-1 and
+    http://tools.ietf.org/html/rfc6750#section-5.3 .
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_SSL_ONLY = True
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET', use_ssl=True)
+
+    api_endpoint = make_oauth_protected_endpoint('verify')
+
+    response = api_endpoint(api_request)
+    self.assertIs(response, True, response)
+
+  def test_ssl_only_insecure_request_fails(self):
+    """ Test that insecure requests fail when the backend requires all
+    AccessToken-authenticated requests to be secure, as recommended by
+    http://tools.ietf.org/html/rfc6750#section-1 and
+    http://tools.ietf.org/html/rfc6750#section-5.3 .
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_SSL_ONLY = True
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET', use_ssl=False)
+
+    api_endpoint = make_oauth_protected_endpoint('verify')
+
+    response = api_endpoint(api_request)
+    self.assertIsInstance(response, HttpResponse, response)
+    self.assertEqual(response.status_code, 400, response.status_code)
+
+  def test_no_ssl_required_ssl_request_succeeds(self):
+    """ Test that secure requests succeed when the backend DOES NOT require
+    AccessToken-authenticated requests to be secure.
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_SSL_ONLY = False
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET', use_ssl=True)
+
+    api_endpoint = make_oauth_protected_endpoint('verify')
+
+    response = api_endpoint(api_request)
+    self.assertIs(response, True, response)
+
+  def test_no_ssl_required_insecure_request_succeeds(self):
+    """ Test that insecure requests succeed when the backend DOES NOT require
+    AccessToken-authenticated requests to be secure.
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_SSL_ONLY = False
+
+    access_token = self.create_access_token(self.user, self.client)
+
+    api_request = self.oauth_client.make_api_request(
+        access_token, {}, 'GET', use_ssl=False)
+
+    api_endpoint = make_oauth_protected_endpoint('verify')
+
+    response = api_endpoint(api_request)
+    self.assertIs(response, True, response)
 
