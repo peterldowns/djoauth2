@@ -1,5 +1,6 @@
 # coding: utf-8
 import json
+from base64 import b64decode
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -22,6 +23,14 @@ def access_token_endpoint(request):
 
   For further documentation, read http://tools.ietf.org/html/rfc6749#section-3.2
   """
+  # TODO(peter): somehow implement the anti-brute-force requirement specified
+  # by http://tools.ietf.org/html/rfc6749#section-2.3.1 :
+  #
+  #     Since this client authentication method involves a password, the
+  #     authorization server MUST protect any endpoint utilizing it against
+  #     brute force attacks.
+  #
+
   try:
     # From http://tools.ietf.org/html/rfc6749#section-3.2 :
     #
@@ -41,8 +50,73 @@ def access_token_endpoint(request):
     if not request.method == 'POST':
       raise InvalidRequest('all posts must use POST')
 
-    # TODO(peter): current Client authentication takes place as decribed
-    # by the second part of http://tools.ietf.org/html/rfc6749#section-2.3.1 :
+    client_id = None
+    client_secret = None
+
+    # Allow client Authentication via HTTP Basic Authentication (
+    # http://tools.ietf.org/html/rfc2617#section-2 ) as described by
+    # http://tools.ietf.org/html/rfc6749#section-2.3.1 :
+    #
+    #     Clients in possession of a client password MAY use the HTTP Basic
+    #     authentication scheme as defined in [RFC2617] to authenticate with
+    #     the authorization server.  The client identifier is encoded using the
+    #     "application/x-www-form-urlencoded" encoding algorithm per Appendix
+    #     B, and the encoded value is used as the username; the client password
+    #     is encoded using the same algorithm and used as the password.  The
+    #     authorization server MUST support the HTTP Basic authentication
+    #     scheme for authenticating clients that were issued a client password.
+    #
+    # by accepting an 'Authorization' header like so:
+    #
+    #      Authorization: Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3
+    #
+    # where 'czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3' is the result of
+    #
+    #     base64encode('{client_id}:{client_secret}')
+    #
+    if 'HTTP_AUTHORIZATION' in request.META:
+      try:
+        http_authorization = request.META.get('HTTP_AUTHORIZATION', '')
+        auth_method, auth_value = http_authorization.strip().split(' ', 1)
+      except ValueError:
+        raise InvalidRequest('malformed HTTP_AUTHORIZATION header')
+
+      if not auth_method == 'Basic':
+        raise InvalidRequest('unsupported HTTP_AUTHORIZATION method')
+
+      try:
+        client_id, client_secret = b64decode(auth_value).split(':')
+      except (TypeError, ValueError):
+        raise InvalidRequest('malformed HTTP_AUTHORIZATION value')
+
+
+    # The 'client_id' and 'client_secret' parameters MUST NOT be included in
+    # the request URI (GET parameters), as specified by
+    # http://tools.ietf.org/html/rfc6749#section-2.3.1 :
+    #
+    #     The parameters can only be transmitted in the request-body and MUST
+    #     NOT be included in the request URI.
+    #
+    if 'client_id' in request.GET or 'client_secret' in request.GET:
+      raise InvalidRequest(
+          'must not include "client_id" or "client_secret" in request URI')
+
+
+    # Allow Clients to authenticate via POST request data, as specified by
+    # http://tools.ietf.org/html/rfc6749#section-3.2.1 :
+    #
+    #     A client MAY use the "client_id" request parameter to identify itself
+    #     when sending requests to the token endpoint.  In the
+    #     "authorization_code" "grant_type" request to the token endpoint, an
+    #     unauthenticated client MUST send its "client_id" to prevent itself
+    #     from inadvertently accepting a code intended for a client with a
+    #     different "client_id".  This protects the client from substitution of
+    #     the authentication code. (It provides no additional security for the
+    #     protected resource.)
+    #
+    # Please note that this is NOT RECOMMENDED, and that the client should
+    # instead authenticate via the HTTP_AUTHORIZATION header -- see
+    # http://tools.ietf.org/html/rfc6749#section-2.3.1 :
     #
     #     Alternatively, the authorization server MAY support including the
     #     client credentials in the request-body using the following parameters:
@@ -62,69 +136,23 @@ def access_token_endpoint(request):
     #     be transmitted in the request-body and MUST NOT be included in the
     #     request URI.
     #
-    # which is NOT RECOMMENDED. Instead, the server should implement
-    # HTTP Basic Authentication ( http://tools.ietf.org/html/rfc2617#section-2 )
-    # as described by http://tools.ietf.org/html/rfc6749#section-2.3.1 :
-    #
-    #     Clients in possession of a client password MAY use the HTTP Basic
-    #     authentication scheme as defined in [RFC2617] to authenticate with
-    #     the authorization server.  The client identifier is encoded using the
-    #     "application/x-www-form-urlencoded" encoding algorithm per Appendix
-    #     B, and the encoded value is used as the username; the client password
-    #     is encoded using the same algorithm and used as the password.  The
-    #     authorization server MUST support the HTTP Basic authentication
-    #     scheme for authenticating clients that were issued a client password.
-    #
-    # by including an 'Authorization' header like so:
-    #
-    #      Authorization: Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3
-    #
-    # where 'czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3' is the result of
-    #
-    #     base64encode('{client_id}:{client_secret}')
-    #
-
-    # TODO(peter): check that 'client_id' and 'client_secret' parameters are
-    # not included in the request URI (GET parameters), as specified by
-    # http://tools.ietf.org/html/rfc6749#section-2.3.1 :
-    #
-    #     The parameters can only be transmitted in the request-body and MUST
-    #     NOT be included in the request URI.
-    #
-
-    # TODO(peter): somehow implement the anti-brute-force requirement specified
-    # by http://tools.ietf.org/html/rfc6749#section-2.3.1 :
-    #
-    #     Since this client authentication method involves a password, the
-    #     authorization server MUST protect any endpoint utilizing it against
-    #     brute force attacks.
-    #
-
-    # TODO(peter): enforce limit to a single authentication method as required
-    # by http://tools.ietf.org/html/rfc6749#section-2.3 :
+    # In the case that the Client has already authenticated with the
+    # HTTP_AUTHORIZATION method, ensure that they do not also attempt to
+    # authenticate via POST data, as required by
+    # http://tools.ietf.org/html/rfc6749#section-2.3 :
     #
     #     The client MUST NOT use more than one authentication method in each
     #     request.
     #
+    if client_id and client_secret:
+      if 'client_id' in request.POST or 'client_secret' in request.POST:
+        raise InvalidRequest('must use only one authentication method')
+    else:
+      client_id = request.POST.get('client_id')
+      client_secret = request.POST.get('client_secret')
 
-    # From http://tools.ietf.org/html/rfc6749#section-3.2.1 :
-    #
-    #     A client MAY use the "client_id" request parameter to identify itself
-    #     when sending requests to the token endpoint.  In the
-    #     "authorization_code" "grant_type" request to the token endpoint, an
-    #     unauthenticated client MUST send its "client_id" to prevent itself
-    #     from inadvertently accepting a code intended for a client with a
-    #     different "client_id".  This protects the client from substitution of
-    #     the authentication code. (It provides no additional security for the
-    #     protected resource.)
-    #
-    client_id = request.POST.get('client_id')
-    if not client_id:
-      raise InvalidRequest('no "client_id" provided')
-
-    client_secret = request.POST.get('client_secret')
-    if not client_secret:
-      raise InvalidRequest('no "client_secret" provided"')
+    if not (client_id and client_secret):
+      raise InvalidRequest('no client authentication provided')
 
     try:
       client = Client.objects.get(key=client_id, secret=client_secret)
