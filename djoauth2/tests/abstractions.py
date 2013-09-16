@@ -203,11 +203,6 @@ class DJOAuth2TestCase(TestCase):
       authorization_code.save()
     return authorization_code
 
-  def delete_authorization_code(self, authorization_code):
-    if not isinstance(authorization_code, AuthorizationCode):
-      raise ValueError("Not an AuthorizationCode");
-    return authorization_code.delete()
-
   def create_access_token(self, user, client, custom=None):
     params = {
       'user' : user,
@@ -225,11 +220,6 @@ class DJOAuth2TestCase(TestCase):
       access_token.save()
     return access_token
 
-  def delete_access_token(self, access_token):
-    if not isinstance(access_token, AccessToken):
-      raise ValueError("Not an AccessToken!")
-    return access_token.delete()
-
   def create_scope(self, custom=None):
     random_string = md5(str(random())).hexdigest()
     params = {
@@ -238,11 +228,6 @@ class DJOAuth2TestCase(TestCase):
     }
     params.update(custom or {})
     return Scope.objects.create(**params)
-
-  def delete_scope(self, scope):
-    if not isinstance(scope, Scope):
-      raise ValueError("Not a Scope!")
-    return scope.delete()
 
   def assert_token_success(self, response):
     self.assertEqual(response.status_code, 200, response)
