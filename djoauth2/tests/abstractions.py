@@ -53,11 +53,11 @@ class DJOAuth2TestClient(TestClient):
 
   def make_api_request(self,
                        access_token,
-                       method,
                        data=None,
+                       method='GET',
                        header_data=None,
                        meta=None,
-                       use_ssl=None):
+                       use_ssl=True):
 
 
     # Respect default ssl settings if no value is passed.
@@ -127,6 +127,7 @@ class DJOAuth2TestClient(TestClient):
                                   client,
                                   authorization_code_value,
                                   method='POST',
+                                  use_ssl=True,
                                   **kwargs):
     data = {
       'grant_type': 'authorization_code',
@@ -134,12 +135,14 @@ class DJOAuth2TestClient(TestClient):
     }
     data.update(kwargs.pop('data', {}))
     kwargs['data'] = data
+    kwargs['use_ssl'] = use_ssl
     return self.access_token_request(client, method, **kwargs)
 
   def request_token_from_refresh_token(self,
                                   client,
                                   refresh_token_value,
                                   method='POST',
+                                  use_ssl=True,
                                   **kwargs):
     data = {
       'grant_type': 'refresh_token',
@@ -147,6 +150,7 @@ class DJOAuth2TestClient(TestClient):
     }
     data.update(kwargs.pop('data', {}))
     kwargs['data'] = data
+    kwargs['use_ssl'] = use_ssl
     return self.access_token_request(client, method, **kwargs)
 
 

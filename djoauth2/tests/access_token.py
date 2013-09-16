@@ -26,11 +26,9 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         data={
           'redirect_uri' : None,
-        },
-        use_ssl=True)
+        })
 
     self.assert_token_success(response)
 
@@ -51,11 +49,9 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         data={
           'redirect_uri' : self.client.redirect_uri,
-        },
-        use_ssl=True)
+        })
 
     self.assert_token_success(response)
 
@@ -78,11 +74,9 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         data={
           'redirect_uri' : different_redirect,
-        },
-        use_ssl=True)
+        })
 
     self.assert_token_failure(response)
 
@@ -95,7 +89,6 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         use_ssl=False)
 
     self.assert_token_failure(response)
@@ -109,7 +102,6 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         use_ssl=True)
 
     self.assert_token_success(response)
@@ -123,7 +115,6 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         use_ssl=True)
 
     self.assert_token_success(response)
@@ -137,12 +128,11 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         use_ssl=True)
 
     self.assert_token_success(response)
 
-  def test_missing_secret(self):
+  def test_body_auth_missing_secret_fails(self):
     """ If the access token request does not include a secret, it will fail. """
     self.initialize()
 
@@ -152,18 +142,14 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         data={
           'client_secret' : None
         },
-        header_data={
-          'client_secret' : None
-        },
-        use_ssl=True)
+        use_header_auth=False)
 
     self.assert_token_failure(response)
 
-  def test_mismatched_secret(self):
+  def test_body_auth_mismatched_secret_fails(self):
     """ If the access token request includes a secret that doesn't match the
     registered secret, the request will fail.
     """
@@ -179,11 +165,10 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        method='POST',
         data={
           'client_secret' : mismatched_secret
         },
-        use_ssl=True)
+        use_header_auth=False)
 
     self.assert_token_failure(response)
 
@@ -204,9 +189,7 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
 
     response = self.oauth_client.request_token_from_authcode(
         self.client2,
-        default_client_authcode.value,
-        method='POST',
-        use_ssl=True)
+        default_client_authcode.value)
 
     self.assert_token_failure(response)
 
@@ -224,10 +207,7 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     self.assertTrue(authcode.is_expired())
 
     response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        method='POST',
-        use_ssl=True)
+        self.client, authcode.value)
 
     self.assert_token_failure(response)
 
@@ -242,17 +222,11 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     authcode = self.create_authorization_code(self.user, self.client)
 
     response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        method='POST',
-        use_ssl=True)
+        self.client, authcode.value)
     self.assert_token_success(response)
 
     response2 = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        method='POST',
-        use_ssl=True)
+        self.client, authcode.value)
     self.assert_token_failure(response2)
 
     authcode = AuthorizationCode.objects.get(pk=authcode.pk)
@@ -272,10 +246,7 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         AuthorizationCode.objects.filter(value=fake_authcode_value).exists())
 
     response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        fake_authcode_value,
-        method='POST',
-        use_ssl=True)
+        self.client, fake_authcode_value)
 
     self.assert_token_failure(response)
 
@@ -286,10 +257,7 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
 
     authcode = self.create_authorization_code(self.user, self.client)
     response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        method='GET',
-        use_ssl=True)
+        self.client, authcode.value, method='GET')
 
     self.assert_token_failure(response)
 
@@ -303,10 +271,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     self.assertFalse(access_token.refreshable)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token.refresh_token,
-        method='POST',
-        use_ssl=True)
+        self.client, access_token.refresh_token)
 
     self.assert_token_failure(response)
 
@@ -326,11 +291,9 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_refresh_token(
         self.client,
         access_token.refresh_token,
-        method='POST',
         data={
           'scope': None
-        },
-        use_ssl=True)
+        })
 
     self.assert_token_success(response)
     refresh_data = json.loads(response.content)
@@ -350,11 +313,9 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_refresh_token(
         self.client,
         access_token_1.refresh_token,
-        method='POST',
         data={
           'scope': scope_string_1,
-        },
-        use_ssl=True)
+        })
 
     self.assert_token_success(response)
     scope_string_2 = json.loads(response.content).get('scope')
@@ -377,11 +338,9 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_refresh_token(
         self.client,
         access_token_1.refresh_token,
-        method='POST',
         data={
           'scope': ' '.join(scope_list_2),
-        },
-        use_ssl=True)
+        })
 
     self.assert_token_failure(response)
 
@@ -402,11 +361,9 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_refresh_token(
         self.client,
         access_token_1.refresh_token,
-        method='POST',
         data={
           'scope': ' '.join(scope_list_2),
-        },
-        use_ssl=True)
+        })
 
     self.assert_token_failure(response)
 
@@ -418,10 +375,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
         AccessToken.objects.filter(refresh_token=refresh_token_value).exists())
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        refresh_token_value,
-        method='POST',
-        use_ssl=True)
+        self.client, refresh_token_value)
 
     self.assert_token_failure(response)
 
@@ -436,11 +390,9 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_refresh_token(
         self.client,
         access_token.refresh_token,
-        method='POST',
         data={
           'grant_type': 'not_refresh_token',
-        },
-        use_ssl=True)
+        })
 
     self.assert_token_failure(response)
 
@@ -457,10 +409,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
                         self.client2.secret)
 
     response = self.oauth_client.request_token_from_authcode(
-        self.client2,
-        default_client_access_token.value,
-        method='POST',
-        use_ssl=True)
+        self.client2, default_client_access_token.value)
 
     self.assert_token_failure(response)
 
@@ -483,18 +432,12 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     access_token_1 = self.create_access_token(self.user, self.client)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token_1.refresh_token,
-        method='POST',
-        use_ssl=True)
+        self.client, access_token_1.refresh_token)
 
     self.assert_token_success(response)
 
     response2 = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token_1.refresh_token,
-        method='POST',
-        use_ssl=True)
+        self.client, access_token_1.refresh_token)
 
     self.assert_token_failure(response2)
 
@@ -539,10 +482,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
         invalidated_refresh_token_use_callback)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token.refresh_token,
-        method='POST',
-        use_ssl=True)
+        self.client, access_token.refresh_token)
 
     self.assert_token_failure(response)
     self.assertTrue(self.received_signal)
@@ -554,10 +494,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token.refresh_token,
-        method='POST',
-        use_ssl=False)
+        self.client, access_token.refresh_token, use_ssl=False)
 
     self.assert_token_failure(response)
 
@@ -568,10 +505,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token.refresh_token,
-        method='POST',
-        use_ssl=True)
+        self.client, access_token.refresh_token, use_ssl=True)
 
     self.assert_token_success(response)
 
@@ -582,10 +516,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token.refresh_token,
-        method='POST',
-        use_ssl=True)
+        self.client, access_token.refresh_token, use_ssl=True)
 
     self.assert_token_success(response)
 
@@ -596,9 +527,6 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token.refresh_token,
-        method='POST',
-        use_ssl=False)
+        self.client, access_token.refresh_token, use_ssl=False)
 
     self.assert_token_success(response)

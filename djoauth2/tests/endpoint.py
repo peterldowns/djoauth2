@@ -30,11 +30,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
 
     access_token = self.create_access_token(self.user, self.client)
 
-    api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=True)
+    api_request = self.oauth_client.make_api_request(access_token, {})
     api_endpoint = make_oauth_protected_endpoint('verify')
 
     response = api_endpoint(api_request)
@@ -47,11 +43,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
 
     access_token = self.create_access_token(self.user, self.client)
 
-    api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=True)
+    api_request = self.oauth_client.make_api_request(access_token, {})
     api_endpoint = make_oauth_protected_endpoint('verify')
 
     response = api_endpoint(api_request)
@@ -64,11 +56,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
 
     access_token = self.create_access_token(self.user, self.client)
 
-    api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=True)
+    api_request = self.oauth_client.make_api_request(access_token, {})
     api_endpoint = make_oauth_protected_endpoint('verify', 'autologin')
 
     api_response = api_endpoint(api_request)
@@ -86,11 +74,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
         seconds=access_token.lifetime)
     access_token.save()
 
-    api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=True)
+    api_request = self.oauth_client.make_api_request(access_token, {})
     api_endpoint = make_oauth_protected_endpoint('verify')
 
     api_response = api_endpoint(api_request)
@@ -104,11 +88,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
 
     access_token = self.create_access_token(self.user, self.client)
 
-    api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=True)
+    api_request = self.oauth_client.make_api_request(access_token, {})
 
     if 'HTTP_AUTHORIZATION' in api_request.META:
       del api_request.META['HTTP_AUTHORIZATION']
@@ -133,10 +113,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=True)
+        access_token, {}, use_ssl=True)
 
     api_endpoint = make_oauth_protected_endpoint('verify')
 
@@ -155,10 +132,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=False)
+        access_token, {}, use_ssl=False)
 
     api_endpoint = make_oauth_protected_endpoint('verify')
 
@@ -176,10 +150,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=True)
+        access_token, {}, use_ssl=True)
 
     api_endpoint = make_oauth_protected_endpoint('verify')
 
@@ -196,10 +167,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     api_request = self.oauth_client.make_api_request(
-        access_token=access_token,
-        method='GET',
-        data={},
-        use_ssl=False)
+        access_token, {}, use_ssl=False)
 
     api_endpoint = make_oauth_protected_endpoint('verify')
 
