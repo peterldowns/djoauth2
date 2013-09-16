@@ -53,89 +53,101 @@ class DJOAuth2TestClient(TestClient):
 
   def make_api_request(self,
                        access_token,
+                       method,
                        data=None,
-                       method='POST',
+                       header_data=None,
+                       meta=None,
                        use_ssl=None):
-    factory = RequestFactory()
+
 
     # Respect default ssl settings if no value is passed.
     if use_ssl is None:
       use_ssl = self.ssl_only
 
+    request_method = getattr(RequestFactory(), method.lower())
 
-    request_method = getattr(factory, method.lower())
+    data = data or {}
+    remove_empty_parameters(data)
 
-    api_request = request_method('/url/does/not/matter', data or {}, **{
-      # From http://codeinthehole.com/writing/testing-https-handling-in-django/
-      'wsgi.url_scheme': 'https' if use_ssl else 'http'})
+    headers = {
+        # From http://codeinthehole.com/writing/testing-https-handling-in-django/
+        'wsgi.url_scheme': 'https' if use_ssl else 'http',
+      }
+    headers.update(header_data or {})
+    remove_empty_parameters(headers)
 
+    api_request = request_method('/url/does/not/matter', data, **headers)
     api_request.META['HTTP_AUTHORIZATION'] = 'Bearer ' + access_token.value
-
-    # Respect default ssl settings if no value is passed.
-    if use_ssl is None:
-      use_ssl = self.ssl_only
+    api_request.META.update(meta or {})
+    remove_empty_parameters(api_request.META)
 
     return api_request
 
   def access_token_request(self,
                            client,
-                           custom=None,
-                           headers=None,
-                           method='POST',
-                           header_auth=True,
+                           method,
+                           data=None,
+                           header_data=None,
+                           meta=True,
+                           use_header_auth=True,
                            use_ssl=None):
-
-    data = {
-        'client_id': client.key,
-        'client_secret': client.secret,
-        'redirect_uri': client.redirect_uri,
-      }
-    data.update(custom or {})
-    remove_empty_parameters(data)
 
     # Respect default ssl settings if no value is passed.
     if use_ssl is None:
       use_ssl = self.ssl_only
-    header_data = {
-        'wsgi.url_scheme': 'https' if use_ssl else 'http'
+
+    params = {
+        'client_id': client.key,
+        'client_secret': client.secret,
+        'redirect_uri': client.redirect_uri,
       }
+    params.update(data or {})
+    remove_empty_parameters(params)
 
-    if header_auth:
-      header_data.update({
-        'HTTP_AUTHORIZATION' : 'Basic ' + b64encode('{}:{}'.format(
-          data.pop('client_id', ''), data.pop('client_secret', '')))})
+    headers = {
+        # From http://codeinthehole.com/writing/testing-https-handling-in-django/
+        'wsgi.url_scheme': 'https' if use_ssl else 'http',
+      }
+    if use_header_auth:
+      client_id = params.pop('client_id', '')
+      client_secret = params.pop('client_secret', '')
+      headers.update({'HTTP_AUTHORIZATION': 'Basic ' + b64encode(
+        '{}:{}'.format(client_id, client_secret))})
 
-    header_data.update(headers or {})
-    remove_empty_parameters(header_data)
+    headers.update(header_data or {})
+    remove_empty_parameters(headers)
 
     request_method = getattr(self, method.lower())
-    response = request_method(self.token_endpoint, data=data, **header_data)
+
+    response = request_method(self.token_endpoint, params, **headers)
     self.load_token_data(response)
     return response
 
   def request_token_from_authcode(self,
                                   client,
                                   authorization_code_value,
+                                  method='POST',
                                   **kwargs):
-    custom = {
+    data = {
       'grant_type': 'authorization_code',
       'code': authorization_code_value,
     }
-    custom.update(kwargs.pop('custom', {}))
-    kwargs['custom'] = custom
-    return self.access_token_request(client, **kwargs)
+    data.update(kwargs.pop('data', {}))
+    kwargs['data'] = data
+    return self.access_token_request(client, method, **kwargs)
 
   def request_token_from_refresh_token(self,
                                   client,
                                   refresh_token_value,
+                                  method='POST',
                                   **kwargs):
-    custom = {
+    data = {
       'grant_type': 'refresh_token',
       'refresh_token': refresh_token_value,
     }
-    custom.update(kwargs.pop('custom', {}))
-    kwargs['custom'] = custom
-    return self.access_token_request(client, **kwargs)
+    data.update(kwargs.pop('data', {}))
+    kwargs['data'] = data
+    return self.access_token_request(client, method, **kwargs)
 
 
   def load_token_data(self, response=None):
