@@ -231,7 +231,6 @@ def generate_access_token_from_authorization_code(request, client):
         '"{}" is not a valid "code"'.format(authorization_code_value))
 
   if authorization_code.is_expired():
-
     if authorization_code.invalidated:
       for access_token in authorization_code.access_tokens.all():
         access_token.invalidate()

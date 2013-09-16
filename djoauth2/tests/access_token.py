@@ -12,76 +12,7 @@ from djoauth2.signals import refresh_token_used_after_invalidation
 from djoauth2.tests.abstractions import DJOAuth2TestCase
 
 
-class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
-  def test_pass_no_redirect_defaults_to_registered(self):
-    """ If the OAuth client has registered a redirect uri, it is OK to not
-    explicitly pass the same URI again.
-    """
-    self.initialize()
-
-    # Create an authorization code without a redirect URI.
-    authcode = self.create_authorization_code(self.user, self.client, {
-        'redirect_uri' : None
-      })
-
-    # Override the default redirect param to not exist.
-    response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        data={
-          'redirect_uri' : None,
-        })
-
-    self.assert_token_success(response)
-
-  def test_passed_uri_must_match_registered(self):
-    """ If the OAuth client has registered a redirect uri, and the same
-    redirect URI is passed here, the request should succeed.
-    """
-    self.initialize()
-
-    # Create an authorization code, which must have a redirect because there is
-    # no default redirect for this client
-    authcode = self.create_authorization_code(self.user, self.client, {
-          'redirect_uri' : self.client.redirect_uri
-        })
-
-    # Request an authorization token with the same redirect as the
-    # authorization code (the OAuth spec requires them to match.)
-    response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        data={
-          'redirect_uri' : self.client.redirect_uri,
-        })
-
-    self.assert_token_success(response)
-
-  def test_redirect_uri_does_not_match_registered_uri(self):
-    """ If the OAuth client has registered a redirect uri, and passes a
-    different redirect URI to the access token request, the request will fail.
-    """
-    self.initialize()
-
-    # Request an authorization token with a redirect that is different than the
-    # one registered by the client.
-
-    authcode = self.create_authorization_code(self.user, self.client, {
-          'redirect_uri' : self.client.redirect_uri
-        })
-
-    different_redirect = 'https://NOTlocu.com'
-    self.assertNotEqual(different_redirect, self.client.redirect_uri)
-
-    response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        data={
-          'redirect_uri' : different_redirect,
-        })
-
-    self.assert_token_failure(response)
-
+class TestAccessTokenEndpoint(DJOAuth2TestCase):
   def test_ssl_required_insecure_request_fails(self):
     self.initialize()
     settings.DJOAUTH2_SSL_ONLY = True
@@ -134,6 +65,26 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
 
     self.assert_token_success(response)
 
+  def test_get_requests_fail(self):
+    """ The AccessToken endpoint should only accept POST requests. """
+    self.initialize()
+
+    authcode = self.create_authorization_code(self.user, self.client)
+    response = self.oauth_client.request_token_from_authcode(
+        self.client, authcode.value, method='GET')
+
+    self.assert_token_failure(response)
+
+  def test_put_requests_fail(self):
+    """ The AccessToken endpoint should only accept POST requests. """
+    self.initialize()
+
+    authcode = self.create_authorization_code(self.user, self.client)
+    response = self.oauth_client.request_token_from_authcode(
+        self.client, authcode.value, method='PUT')
+
+    self.assert_token_failure(response)
+
   def test_header_auth_succeeds(self):
     self.initialize()
 
@@ -146,45 +97,29 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
 
     self.assert_token_success(response)
 
-  def test_header_auth_missing_secret_fails(self):
-    """ If the access token request does not include a secret, it will fail. """
+  def test_malformed_header_auth_fails(self):
+    raise NotImplementedError()
+
+  def test_header_auth_method_is_not_basic_fails(self):
+    raise NotImplementedError()
+
+  def test_header_auth_value_is_malformed_fails(self):
+    raise NotImplementedError()
+
+  def test_including_authorization_in_request_uri_fails(self):
+    raise NotImplementedError()
+
+  def test_body_auth_succeeds(self):
     self.initialize()
 
     authcode = self.create_authorization_code(self.user, self.client)
 
-    # Override default client_secret param to not exist.
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        data={
-          'client_secret' : None
-        },
-        use_header_auth=True)
+        use_header_auth=False)
 
-    self.assert_token_failure(response)
-
-  def test_header_auth_mismatched_secret_fails(self):
-    """ If the access token request includes a secret that doesn't match the
-    registered secret, the request will fail.
-    """
-    self.initialize()
-
-    authcode = self.create_authorization_code(self.user, self.client)
-
-    # Override default client_secret param to not match the client's registered
-    # secret.
-    mismatched_secret = self.client.secret + 'thischangesthevalue'
-    self.assertNotEqual(mismatched_secret, self.client.secret)
-
-    response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        data={
-          'client_secret' : mismatched_secret
-        },
-        use_header_auth=True)
-
-    self.assert_token_failure(response)
+    self.assert_token_success(response)
 
   def test_multiple_types_of_authentication_fails(self):
     self.initialize()
@@ -207,20 +142,10 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         request_data, **headers)
     self.assert_token_failure(response, 400)
 
+  def test_nonexistent_client_fails(self):
+    raise NotImplementedError()
 
-  def test_body_auth_succeeds(self):
-    self.initialize()
-
-    authcode = self.create_authorization_code(self.user, self.client)
-
-    response = self.oauth_client.request_token_from_authcode(
-        self.client,
-        authcode.value,
-        use_header_auth=False)
-
-    self.assert_token_success(response)
-
-  def test_body_auth_missing_secret_fails(self):
+  def test_missing_secret_fails(self):
     """ If the access token request does not include a secret, it will fail. """
     self.initialize()
 
@@ -233,11 +158,11 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         data={
           'client_secret' : None
         },
-        use_header_auth=False)
+        use_header_auth=True)
 
     self.assert_token_failure(response)
 
-  def test_body_auth_mismatched_secret_fails(self):
+  def test_mismatched_client_and_secret_fails(self):
     """ If the access token request includes a secret that doesn't match the
     registered secret, the request will fail.
     """
@@ -256,11 +181,37 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         data={
           'client_secret' : mismatched_secret
         },
-        use_header_auth=False)
+        use_header_auth=True)
 
     self.assert_token_failure(response)
 
-  def test_mismatched_code_and_client(self):
+  def test_invalid_grant_type_fails(self):
+    """ If an Authorization Code / Grant does not exist, then the request will
+    fail.
+    """
+    self.initialize()
+
+    authcode = self.create_authorization_code(self.user, self.client)
+    fake_authcode_value = "myfakeauthcodelol"
+    self.assertNotEqual(authcode, fake_authcode_value)
+    self.assertFalse(
+        AuthorizationCode.objects.filter(value=fake_authcode_value).exists())
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client, fake_authcode_value)
+
+    self.assert_token_failure(response)
+
+
+
+class TestRequestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
+  def test_request_without_code_value_fails(self):
+    raise NotImplementedError()
+
+  def test_nonexistent_code_fails(self):
+    raise NotImplementedError()
+
+  def test_mismatched_code_and_client_fails(self):
     """ If the code authorized by a user is not associated with the OAuth
     client making the access token request, the request will fail.
     """
@@ -281,7 +232,7 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
-  def test_expired_code(self):
+  def test_expired_code_fails(self):
     """ If an authorization code is unused within its lifetime, an attempt to
     use it will fail.
     """
@@ -299,7 +250,10 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
-  def test_multiple_use_of_single_authorization_code(self):
+  def test_expired_code_fails_and_does_not_invalidate_previously_granted_tokens(self):
+    raise NotImplementedError()
+
+  def test_reuse_of_single_authorization_code_fails_and_invalidates_previously_granted_tokens(self):
     """ If an authorization code is used more than once, the authorization
     server MUST deny the request and SHOULD revoke (when possible) all tokens
     previously issued based on that authorization code.
@@ -321,141 +275,85 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     for access_token in authcode.access_tokens.all():
       self.assertTrue(access_token.is_expired())
 
-  def test_invalid_grant(self):
-    """ If an Authorization Code / Grant does not exist, then the request will
-    fail.
+  def test_no_redirect_uri_passed_defaults_to_registered_and_succeeds(self):
+    """ If the OAuth client has registered a redirect uri, it is OK to not
+    explicitly pass the same URI again.
     """
     self.initialize()
 
-    authcode = self.create_authorization_code(self.user, self.client)
-    fake_authcode_value = "myfakeauthcodelol"
-    self.assertNotEqual(authcode, fake_authcode_value)
-    self.assertFalse(
-        AuthorizationCode.objects.filter(value=fake_authcode_value).exists())
+    # Create an authorization code without a redirect URI.
+    authcode = self.create_authorization_code(self.user, self.client, {
+        'redirect_uri' : None
+      })
 
+    # Override the default redirect param to not exist.
     response = self.oauth_client.request_token_from_authcode(
-        self.client, fake_authcode_value)
+        self.client,
+        authcode.value,
+        data={
+          'redirect_uri' : None,
+        })
 
-    self.assert_token_failure(response)
+    self.assert_token_success(response)
 
-  def test_get_requests_fail(self):
-    """ The Access Token endpoint should not accept GET requests -- only POST.
+  def test_passed_redirect_uri_matches_registered_and_succeeds(self):
+    """ If the OAuth client has registered a redirect uri, and the same
+    redirect URI is passed here, the request should succeed.
     """
     self.initialize()
 
-    authcode = self.create_authorization_code(self.user, self.client)
+    # Create an authorization code, which must have a redirect because there is
+    # no default redirect for this client
+    authcode = self.create_authorization_code(self.user, self.client, {
+          'redirect_uri' : self.client.redirect_uri
+        })
+
+    # Request an authorization token with the same redirect as the
+    # authorization code (the OAuth spec requires them to match.)
     response = self.oauth_client.request_token_from_authcode(
-        self.client, authcode.value, method='GET')
-
-    self.assert_token_failure(response)
-
-
-class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
-  def test_tokens_not_refreshable_fails(self):
-    self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = False
-
-    access_token = self.create_access_token(self.user, self.client)
-    self.assertFalse(access_token.refreshable)
-
-    response = self.oauth_client.request_token_from_refresh_token(
-        self.client, access_token.refresh_token)
-
-    self.assert_token_failure(response)
-
-
-  def test_request_with_no_scope_succeeds(self):
-    """ If an OAuth client makes a refresh token request without specifying the
-    scope, the client should receive a token with the same scopes as the
-    original.
-
-    Also, I was *this* close to naming this method
-    "test_xXxXx420HEADSHOT_noscope_SWAGYOLOxXxXx".
-    """
-    self.initialize(scope_names=['verify', 'autologin'])
-
-    access_token = self.create_access_token(self.user, self.client)
-
-    response = self.oauth_client.request_token_from_refresh_token(
         self.client,
-        access_token.refresh_token,
+        authcode.value,
         data={
-          'scope': None
+          'redirect_uri' : self.client.redirect_uri,
         })
 
     self.assert_token_success(response)
-    refresh_data = json.loads(response.content)
-    self.assertEqual(refresh_data['scope'], self.oauth_client.scope_string)
 
-  def test_request_with_same_scope_succeeds(self):
-    """ A request for a new AccessToken made with a RefreshToken that includes
-    a scope parameter for the same scope as the existing
-    RefreshToken/AccessToken pair should succeed.
+  def test_passed_redirect_uri_does_not_match_registered_uri_and_fails(self):
+    """ If the OAuth client has registered a redirect uri, and passes a
+    different redirect URI to the access token request, the request will fail.
     """
-    self.initialize(scope_names=['verify', 'autologin'])
+    self.initialize()
 
-    access_token_1 = self.create_access_token(self.user, self.client)
-    scope_string_1 = self.oauth_client.scope_string
+    # Request an authorization token with a redirect that is different than the
+    # one registered by the client.
 
-
-    response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token_1.refresh_token,
-        data={
-          'scope': scope_string_1,
+    authcode = self.create_authorization_code(self.user, self.client, {
+          'redirect_uri' : self.client.redirect_uri
         })
 
-    self.assert_token_success(response)
-    scope_string_2 = json.loads(response.content).get('scope')
-    self.assertEqual(scope_string_1, scope_string_2)
+    different_redirect = 'https://NOTlocu.com'
+    self.assertNotEqual(different_redirect, self.client.redirect_uri)
 
-  def test_request_with_subset_of_initial_scope(self):
-    """ If a new refresh token is issued, the refresh token scope MUST be
-    identical to that of the refresh token included by the client in the
-    request. -- http://tools.ietf.org/html/rfc6749#section-6
-    """
-    scope_list_1 = ['verify', 'autologin']
-    self.initialize(scope_names=scope_list_1)
-
-    access_token_1 = self.create_access_token(self.user, self.client)
-    scope_string_1 = self.oauth_client.scope_string
-
-    scope_list_2 = scope_list_1[:1]
-    self.assertGreater(set(scope_list_1), set(scope_list_2))
-
-    response = self.oauth_client.request_token_from_refresh_token(
+    response = self.oauth_client.request_token_from_authcode(
         self.client,
-        access_token_1.refresh_token,
+        authcode.value,
         data={
-          'scope': ' '.join(scope_list_2),
+          'redirect_uri' : different_redirect,
         })
 
     self.assert_token_failure(response)
 
-  def test_request_with_superset_of_initial_scope(self):
-    """ If a new refresh token is issued, the refresh token scope MUST be
-    identical to that of the refresh token included by the client in the
-    request. -- http://tools.ietf.org/html/rfc6749#section-6
-    """
-    scope_list_1 = ['verify', 'autologin']
-    self.initialize(scope_names=scope_list_1)
+  def test_after_success_authorization_code_is_invalidated(self):
+    raise NotImplementedError()
 
-    access_token_1 = self.create_access_token(self.user, self.client)
-    scope_string_1 = self.oauth_client.scope_string
 
-    scope_list_2 = scope_list_1 + ['example']
-    self.assertGreater(set(scope_list_2), set(scope_list_1))
 
-    response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token_1.refresh_token,
-        data={
-          'scope': ' '.join(scope_list_2),
-        })
+class TestRequestAccessTokenFromRefreshToken(DJOAuth2TestCase):
+  def test_request_without_refresh_token_value_fails(self):
+    raise NotImplementedError()
 
-    self.assert_token_failure(response)
-
-  def test_request_with_nonexistent_refresh_token_(self):
+  def test_request_with_nonexistent_refresh_token_fails(self):
     self.initialize(scope_names=['verify', 'autologin'])
 
     refresh_token_value = 'doesnotexist'
@@ -467,25 +365,8 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
-  def test_request_with_invalid_grant_type(self):
-    """ RefreshToken-based requests for new AccessTokens that specify a
-    "grant_type" parameter that isn't "refresh_token" will fail.
-    """
-    self.initialize(scope_names=['verify', 'autologin'])
-
-    access_token = self.create_access_token(self.user, self.client)
-
-    response = self.oauth_client.request_token_from_refresh_token(
-        self.client,
-        access_token.refresh_token,
-        data={
-          'grant_type': 'not_refresh_token',
-        })
-
-    self.assert_token_failure(response)
-
-  def test_request_with_mismatched_client(self):
-    """ One client ay not refresh another client's token. """
+  def test_request_with_mismatched_client_and_refresh_token_fails(self):
+    """ One client may not refresh another client's AccessToken. """
     self.initialize(scope_names=['verify', 'autologin'])
 
     default_client_access_token = self.create_access_token(
@@ -501,7 +382,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
 
     self.assert_token_failure(response)
 
-  def test_multiple_use_of_refresh_token(self):
+  def test_reuse_of_refresh_token_fails(self):
     """ Each refresh token can only be used once. Attempting to refresh with a
     token that has already been used will result in a failure.
 
@@ -537,7 +418,7 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     self.assertEqual(existing_token_filter[0].pk, access_token_1.pk)
     self.assertTrue(existing_token_filter[0].invalidated)
 
-  def test_multiple_use_of_refresh_token_fires_signal(self):
+  def test_reuse_of_refresh_token_fires_signal(self):
     """ Our implementation should fire a
     'refresh_token_used_after_invalidation' signal that users may listen to and
     use to alert Clients that their refresh tokens have been accessed more than
@@ -575,46 +456,112 @@ class TestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     self.assert_token_failure(response)
     self.assertTrue(self.received_signal)
 
-  def test_ssl_required_insecure_request_fails(self):
+  def test_tokens_not_refreshable_fails(self):
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_SSL_ONLY = True
+    settings.DJOAUTH2_ACCESS_TOKENS_REFRESHABLE = False
 
     access_token = self.create_access_token(self.user, self.client)
+    self.assertFalse(access_token.refreshable)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client, access_token.refresh_token, use_ssl=False)
+        self.client, access_token.refresh_token)
 
     self.assert_token_failure(response)
 
-  def test_ssl_required_secure_request_succeeds(self):
+  def test_request_with_no_scope_succeeds_with_scope_equivalent_to_original(self):
+    """ If an OAuth client makes a refresh token request without specifying the
+    scope, the client should receive a token with the same scopes as the
+    original.
+
+    Also, I was *this* close to naming this method
+    "test_xXxXx420HEADSHOT_noscope_SWAGYOLOxXxXx".
+    """
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_SSL_ONLY = True
 
     access_token = self.create_access_token(self.user, self.client)
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client, access_token.refresh_token, use_ssl=True)
+        self.client,
+        access_token.refresh_token,
+        data={
+          'scope': None
+        })
 
     self.assert_token_success(response)
+    refresh_data = json.loads(response.content)
+    self.assertEqual(refresh_data['scope'], self.oauth_client.scope_string)
 
-  def test_no_ssl_required_secure_request_succeeds(self):
+  def test_request_with_same_scope_as_original_token_succeeds(self):
+    """ A request for a new AccessToken made with a RefreshToken that includes
+    a scope parameter for the same scope as the existing
+    RefreshToken/AccessToken pair should succeed.
+    """
     self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_SSL_ONLY = False
 
-    access_token = self.create_access_token(self.user, self.client)
+    access_token_1 = self.create_access_token(self.user, self.client)
+    scope_string_1 = self.oauth_client.scope_string
+
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client, access_token.refresh_token, use_ssl=True)
+        self.client,
+        access_token_1.refresh_token,
+        data={
+          'scope': scope_string_1,
+        })
 
     self.assert_token_success(response)
+    scope_string_2 = json.loads(response.content).get('scope')
+    self.assertEqual(scope_string_1, scope_string_2)
 
-  def test_no_ssl_required_insecure_request_succeeds(self):
-    self.initialize(scope_names=['verify', 'autologin'])
-    settings.DJOAUTH2_SSL_ONLY = False
+  def test_request_with_subset_of_initial_scope_fails(self):
+    """ If a new refresh token is issued, the refresh token scope MUST be
+    identical to that of the refresh token included by the client in the
+    request. -- http://tools.ietf.org/html/rfc6749#section-6
+    """
+    scope_list_1 = ['verify', 'autologin']
+    self.initialize(scope_names=scope_list_1)
 
-    access_token = self.create_access_token(self.user, self.client)
+    access_token_1 = self.create_access_token(self.user, self.client)
+    scope_string_1 = self.oauth_client.scope_string
+
+    scope_list_2 = scope_list_1[:1]
+    self.assertGreater(set(scope_list_1), set(scope_list_2))
 
     response = self.oauth_client.request_token_from_refresh_token(
-        self.client, access_token.refresh_token, use_ssl=False)
+        self.client,
+        access_token_1.refresh_token,
+        data={
+          'scope': ' '.join(scope_list_2),
+        })
 
-    self.assert_token_success(response)
+    self.assert_token_failure(response)
+
+  def test_request_with_superset_of_initial_scope_fails(self):
+    """ If a new refresh token is issued, the refresh token scope MUST be
+    identical to that of the refresh token included by the client in the
+    request. -- http://tools.ietf.org/html/rfc6749#section-6
+    """
+    scope_list_1 = ['verify', 'autologin']
+    self.initialize(scope_names=scope_list_1)
+
+    access_token_1 = self.create_access_token(self.user, self.client)
+    scope_string_1 = self.oauth_client.scope_string
+
+    scope_list_2 = scope_list_1 + ['example']
+    self.assertGreater(set(scope_list_2), set(scope_list_1))
+
+    response = self.oauth_client.request_token_from_refresh_token(
+        self.client,
+        access_token_1.refresh_token,
+        data={
+          'scope': ' '.join(scope_list_2),
+        })
+
+    self.assert_token_failure(response)
+
+  def test_request_with_nonexistent_scope_fails(self):
+    raise NotImplementedError()
+
+  def test_after_success_refresh_token_is_invalidated(self):
+    raise NotImplementedError()
+
