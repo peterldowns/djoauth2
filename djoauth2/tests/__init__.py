@@ -1,6 +1,7 @@
 # coding: utf-8
 import datetime
 import json
+from base64 import b64encode
 from hashlib import md5
 from random import random
 
@@ -83,7 +84,9 @@ class DJOAuth2TestClient(TestClient):
   def access_token_request(self,
                            client,
                            custom=None,
+                           headers=None,
                            method='POST',
+                           header_auth=True,
                            use_ssl=None):
 
     data = {
@@ -97,11 +100,20 @@ class DJOAuth2TestClient(TestClient):
     # Respect default ssl settings if no value is passed.
     if use_ssl is None:
       use_ssl = self.ssl_only
+    header_data = {
+        'wsgi.url_scheme': 'https' if use_ssl else 'http'
+      }
+
+    if header_auth:
+      header_data.update({
+        'HTTP_AUTHORIZATION' : 'Basic ' + b64encode('{}:{}'.format(
+          data.pop('client_id', ''), data.pop('client_secret', '')))})
+
+    header_data.update(headers or {})
+    remove_empty_parameters(header_data)
 
     request_method = getattr(self, method.lower())
-    response = request_method(self.token_endpoint, data=data, **{
-      # From http://codeinthehole.com/writing/testing-https-handling-in-django/
-      'wsgi.url_scheme': 'https' if use_ssl else 'http'})
+    response = request_method(self.token_endpoint, data=data, **header_data)
     self.load_token_data(response)
     return response
 
@@ -365,6 +377,9 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         self.client,
         authcode.value,
         custom={
+          'client_secret' : None
+        },
+        headers={
           'client_secret' : None
         })
 
