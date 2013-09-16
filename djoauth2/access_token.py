@@ -100,7 +100,7 @@ class AccessTokenAuthenticator(object):
 
       # Used in the case that the request does not validate. See comment above.
       # At this point in the validation, it is certain that the Client
-      # attempted to authenticate via the 'bearer' method.
+      # attempted to authenticate via the 'Bearer' method.
       expose_errors = True
 
       try:
