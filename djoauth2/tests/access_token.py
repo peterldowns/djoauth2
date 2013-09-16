@@ -1,6 +1,7 @@
 # coding: utf-8
 import datetime
 import json
+from base64 import b64encode
 
 from django.conf import settings
 from django.http import HttpRequest
@@ -9,6 +10,7 @@ from djoauth2.models import AccessToken
 from djoauth2.models import AuthorizationCode
 from djoauth2.signals import refresh_token_used_after_invalidation
 from djoauth2.tests.abstractions import DJOAuth2TestCase
+
 
 class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
   def test_pass_no_redirect_defaults_to_registered(self):
@@ -129,6 +131,92 @@ class TestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         self.client,
         authcode.value,
         use_ssl=True)
+
+    self.assert_token_success(response)
+
+  def test_header_auth_succeeds(self):
+    self.initialize()
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client,
+        authcode.value,
+        use_header_auth=True)
+
+    self.assert_token_success(response)
+
+  def test_header_auth_missing_secret_fails(self):
+    """ If the access token request does not include a secret, it will fail. """
+    self.initialize()
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    # Override default client_secret param to not exist.
+    response = self.oauth_client.request_token_from_authcode(
+        self.client,
+        authcode.value,
+        data={
+          'client_secret' : None
+        },
+        use_header_auth=True)
+
+    self.assert_token_failure(response)
+
+  def test_header_auth_mismatched_secret_fails(self):
+    """ If the access token request includes a secret that doesn't match the
+    registered secret, the request will fail.
+    """
+    self.initialize()
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    # Override default client_secret param to not match the client's registered
+    # secret.
+    mismatched_secret = self.client.secret + 'thischangesthevalue'
+    self.assertNotEqual(mismatched_secret, self.client.secret)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client,
+        authcode.value,
+        data={
+          'client_secret' : mismatched_secret
+        },
+        use_header_auth=True)
+
+    self.assert_token_failure(response)
+
+  def test_multiple_types_of_authentication_fails(self):
+    self.initialize()
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    request_data = {
+        'grant_type': 'authorization_code',
+        'code': authcode.value,
+        # Include authorzation values in the request body
+        'client_id': self.client.key,
+        'client_secret' : self.client.secret,
+      }
+    headers = {
+        'wsgi.url_scheme': 'https' if self.oauth_client.ssl_only else 'http',
+        # Include authorzation values in the request header
+        'HTTP_AUTHORIZATION': 'Basic ' + b64encode(
+          '{}:{}'.format(self.client.key, self.client.secret))}
+
+    response = self.oauth_client.post(self.oauth_client.token_endpoint,
+        request_data, **headers)
+    self.assert_token_failure(response, 400)
+
+
+  def test_body_auth_succeeds(self):
+    self.initialize()
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client,
+        authcode.value,
+        use_header_auth=False)
 
     self.assert_token_success(response)
 

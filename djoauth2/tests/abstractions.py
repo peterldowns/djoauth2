@@ -252,11 +252,11 @@ class DJOAuth2TestCase(TestCase):
     self.assertTrue(self.oauth_client.refresh_token_value)
 
   def assert_token_failure(self, response, expected_error_code=None):
-    self.assertNotEqual(response.status_code, 200, response)
     if expected_error_code:
       self.assertEqual(response.status_code, expected_error_code)
     else:
       # Should have received a 4XX HTTP status code
+      self.assertNotEqual(response.status_code, 200, response)
       self.assertTrue(str(response.status_code)[0] == '4')
     # Check the response contents
     self.assertIsNone(self.oauth_client.access_token_value)
