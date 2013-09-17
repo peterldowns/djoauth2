@@ -23,12 +23,12 @@ def remove_empty_parameters(params):
 
 class DJOAuth2TestClient(TestClient):
   def __init__(self, scope_names=None):
-    # OAuth-related settings
+    # OAuth-related settings.
     self.authorization_endpoint = '/oauth2/authorization/'
     self.token_endpoint = '/oauth2/token/'
     self.scope_names = scope_names or []
 
-    # For internal use
+    # For internal use.
     self.history = []
     self.access_token_value = None
     self.access_token_lifetime = None
@@ -50,6 +50,35 @@ class DJOAuth2TestClient(TestClient):
   @property
   def last_response(self):
     return self.history[-1] if self.history else None
+
+  def make_authorization_request(self,
+                                 client_id,
+                                 scope_string,
+                                 custom=None,
+                                 endpoint='/fake/endpoint/',
+                                 method='GET',
+                                 use_ssl=None):
+    if use_ssl is None:
+      use_ssl = self.ssl_only
+
+    data = {
+        'scope': scope_string,
+        'response_type': 'code',
+        'client_id': client_id,
+        'state': 'statevalue',
+      }
+    data.update(custom or {})
+    remove_empty_parameters(data)
+
+
+    headers = {
+        'wsgi.url_scheme': 'https' if use_ssl else 'http',
+      }
+
+    request_method = getattr(self, method.lower())
+    api_request = request_method(endpoint, data, **headers)
+
+    return api_request
 
   def make_api_request(self,
                        access_token,
