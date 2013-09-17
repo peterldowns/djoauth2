@@ -102,6 +102,16 @@ class AuthorizationCodeGenerator(object):
 
     Read the specification: http://tools.ietf.org/html/rfc6749#section-4.1 .
     """
+
+    # From http://tools.ietf.org/html/rfc6749#section-3.1 :
+    #
+    #     The authorization server MUST support the use of the HTTP "GET"
+    #     method [RFC2616] for the authorization endpoint and MAY support the
+    #     use of the "POST" method as well.
+    #
+    if not request.method in ['GET', 'POST']:
+      raise InvalidRequest('must be GET or POST request')
+
     if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
       raise InvalidRequest('all requests must use TLS')
 
@@ -110,10 +120,42 @@ class AuthorizationCodeGenerator(object):
     if not self.user.is_authenticated():
       raise UnauthenticatedUser('user must be authenticated')
 
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.1 :
+    #
+    #     The client informs the authorization server of the desired grant type
+    #     using the following parameter:
+    #
+    #     response_type
+    #           REQUIRED.  The value MUST be one of "code" for requesting an
+    #           authorization code as described by Section 4.1.1, "token" for
+    #           requesting an access token (implicit grant) as described by
+    #           Section 4.2.1, or a registered extension value as described by
+    #           Section 8.4.
+    #
     response_type = request.REQUEST.get('response_type')
     if response_type != 'code':
       raise UnsupportedResponseType('"response_type" must be "code"')
 
+    # As recommended by http://tools.ietf.org/html/rfc6749#section-4.1.1 :
+    #
+    #     state
+    #           RECOMMENDED.  An opaque value used by the client to maintain
+    #           state between the request and callback.  The authorization
+    #           server includes this value when redirecting the user-agent back
+    #           to the client.  The parameter SHOULD be used for preventing
+    #           cross-site request forgery as described in Section 10.12.
+    #
+    # and necessary for the CSRF recommendation mandated by
+    # http://tools.ietf.org/html/rfc6749#section-10.12 :
+    #
+    #     The client MUST implement CSRF protection for its redirection URI.
+    #     This is typically accomplished by requiring any request sent to the
+    #     redirection URI endpoint to include a value that binds the request to
+    #     the user-agent's authenticated state (e.g., a hash of the session
+    #     cookie used to authenticate the user-agent).  The client SHOULD
+    #     utilize the "state" request parameter to deliver this value to the
+    #     authorization server when making an authorization request.
+    #
     self.state = request.REQUEST.get('state')
     if settings.DJOAUTH2_REQUIRE_STATE and not self.state:
       raise InvalidRequest('"state" must be included')
@@ -141,18 +183,46 @@ class AuthorizationCodeGenerator(object):
     except Client.DoesNotExist:
       raise InvalidRequest('"client_id" does not exist')
 
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.2.3 :
+    #
+    #     If multiple redirection URIs have been registered, if only part of
+    #     the redirection URI has been registered, or if no redirection URI has
+    #     been registered, the client MUST include a redirection URI with the
+    #     authorization request using the "redirect_uri" request parameter.
+    #
     self.request_redirect_uri = request.REQUEST.get('redirect_uri')
     if not (self.client.redirect_uri or self.request_redirect_uri):
       raise InvalidRequest('no "redirect_uri" provided or registered')
 
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.2.3 :
+    #
+    #     When a redirection URI is included in an authorization request, the
+    #     authorization server MUST compare and match the value received
+    #     against at least one of the registered redirection URIs (or URI
+    #     components) as defined in [RFC3986] Section 6, if any redirection
+    #     URIs were registered.  If the client registration included the full
+    #     redirection URI, the authorization server MUST compare the two URIs
+    #     using simple string comparison as defined in [RFC3986] Section 6.2.1.
+    #
     if (self.client.redirect_uri and
           self.request_redirect_uri and
           self.client.redirect_uri != self.request_redirect_uri):
       raise InvalidRequest('"redirect_uri" does not matched the registered URI')
 
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.2 :
+    #
+    #     The redirection endpoint URI MUST be an absolute URI as defined by
+    #     [RFC3986] Section 4.3.
+    #
     redirect_uri = self.client.redirect_uri or self.request_redirect_uri
     if not absolute_http_url_re.match(redirect_uri):
       raise InvalidRequest('"redirect_uri" must be absolute')
+
+    # TODO(peter): reidrection URI MUST not include a fragment component, from
+    # http://tools.ietf.org/html/rfc6749#section-3.1.2 :
+    #
+    #     The endpoint URI MUST NOT include a fragment component.
+    #
 
     # TODO(peter): require that redirection URIs be secure, as recommended by
     # http://tools.ietf.org/html/rfc6749#section-3.1.2.1 :
@@ -189,10 +259,7 @@ class AuthorizationCodeGenerator(object):
     if not self.request:
       raise ValueError('request must have been passed to the "validate" method')
 
-    if as_dict:
-      return dict(self.request.REQUEST.items())
-
-    return urlencode(self.request.REQUEST.items())
+    return (dict if as_dict else urlencode)(self.request.REQUEST.items())
 
   def make_error_redirect(self):
     """ Return an HttpResponseRedirect when the authorization request fails.
