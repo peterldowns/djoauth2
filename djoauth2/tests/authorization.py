@@ -1,7 +1,12 @@
 # coding: utf-8
+import sys
+from urlparse import urlparse
+from urlparse import parse_qsl
+
 from django.conf import settings
 from django.conf.urls.defaults import patterns
 from django.http import HttpResponse
+from django.utils.importlib import import_module
 
 from djoauth2.authorization import AuthorizationCodeGenerator
 from djoauth2.authorization import AuthorizationException
@@ -15,22 +20,32 @@ from djoauth2.tests import test_urls
 from djoauth2.tests.abstractions import DJOAuth2TestCase
 
 
-def make_validation_endpoint(endpoint_uri, authorizer):
+
+def make_validation_endpoint(endpoint_url, authorizer):
   """ Returns a dummy endpoint that validates a request and returns 'OK'.
 
-  Takes a full path URI to install the endpoint and an authorizer to perform
-  the validation.
+  Also installs the endpoint to the global URLconf at the requested
+  endpoint_url.
   """
   def authorization_endpoint(request):
     authorizer.validate(request)
     return HttpResponse('OK')
 
-  # Remove preceding slash for endpoint regex
-  if endpoint_uri[0] == '/':
-    endpoint_uri = endpoint_uri[1:]
+  # Reload the default URLs so that the temporary endpoint does not remain in
+  # the URLconf from test to test.  Taken from
+  # http://codeinthehole.com/writing/how-to-reload-djangos-url-config/ .
+  if settings.ROOT_URLCONF in sys.modules:
+    reload(sys.modules[settings.ROOT_URLCONF])
 
-  test_urls.urlpatterns += patterns('',
-      (r'^{}'.format(endpoint_uri), authorization_endpoint),
+  urlpatterns = import_module(settings.ROOT_URLCONF).urlpatterns
+
+  # Remove preceding slash for the URLconf endpoint regex.
+  if endpoint_url[0] == '/':
+    endpoint_url = endpoint_url[1:]
+
+  # Add the temporary endpoint to the URLconf at the specified url.
+  urlpatterns += patterns('',
+      (r'^{}'.format(endpoint_url), authorization_endpoint),
   )
 
   return authorization_endpoint
@@ -124,8 +139,8 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
           use_ssl=False)
 
   def test_no_ssl_required_secure_request_succeeds(self):
-  """ When SSL is NOT required (in violation of the spec), secure requests
-  should still fail. """
+    """ When SSL is NOT required (in violation of the spec), secure requests
+    should still fail. """
     settings.DJOAUTH2_SSL_ONLY = False
     self.initialize(scope_names=['verify'])
 
@@ -203,19 +218,164 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
           },
           endpoint=self.dummy_endpoint_uri)
 
-  ## State
-  #def test_state_required_and_no_state_included_fails(self):
-  #  raise NotImplementedError()
-  #def test_state_required_and_state_included_fails(self):
-  #  raise NotImplementedError()
-  #def test_state_not_requred_and_state_included_succeeds(self):
-  #  raise NotImplementedError()
-  #def test_state_not_requred_and_no_state_included_succeeds(self):
-  #  raise NotImplementedError()
-  #def test_state_included_on_success_redirect(self):
-  #  raise NotImplementedError()
-  #def test_state_included_on_error_redirect(self):
-  #  raise NotImplementedError()
+  # State
+  def test_state_required_and_no_state_included_fails(self):
+    """ When the "state" parameter is required (as recommended by the spec),
+    requests that omit the parameter should fail.
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_REQUIRE_STATE = True
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    with self.assertRaises(InvalidRequest):
+      response = self.oauth_client.make_authorization_request(
+          client_id=self.client.key,
+          scope_string=self.oauth_client.scope_string,
+          custom={
+            'state': None,
+          },
+          endpoint=self.dummy_endpoint_uri)
+
+  def test_state_required_and_state_included_succeeds(self):
+    """ When the "state" parameter is required (as recommended by the spec),
+    requests that include the parameter should succeed.
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_REQUIRE_STATE = True
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'state': 'astatevalue',
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+  def test_state_not_requred_and_state_included_succeeds(self):
+    """ When the "state" parameter is NOT required (against the recommendations
+    of the spec), requests that include the parameter should still succeed.
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_REQUIRE_STATE = False
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'state': 'astatevalue',
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+  def test_state_not_requred_and_no_state_included_succeeds(self):
+    """ When the "state" parameter is NOT required (against the recommendations
+    of the spec), requests that omit the parameter should succeed.
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_REQUIRE_STATE = False
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'state': None,
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+  def test_state_included_on_success_redirect(self):
+    """ When the "state" parameter is included, it must be preserved EXACTLY in
+    the successful redirect response.
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_REQUIRE_STATE = False
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    # Store a state value to use in the request and for later comparison
+    state_value = 'superstatevalue'
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'state': state_value,
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    successful_redirect = auth_code_generator.make_success_redirect()
+
+    # Grab the URL parameters from the redirect response's Location header and
+    # turn them into a dict object.
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(successful_redirect.get('location')).query))
+
+    self.assertIn('state', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['state'], state_value)
+
+  def test_state_included_on_error_redirect(self):
+    """ When the "state" parameter is included, it must be preserved EXACTLY in
+    the error redirect response.
+    """
+    self.initialize(scope_names=['verify'])
+    settings.DJOAUTH2_REQUIRE_STATE = False
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    # Store a state value to use in the request and for later comparison
+    state_value = 'superstatevalue'
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'state': state_value,
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    error_redirect = auth_code_generator.make_error_redirect()
+
+    # Grab the URL parameters from the redirect response's Location header and
+    # turn them into a dict object.
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(error_redirect.get('location')).query))
+
+    self.assertIn('state', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['state'], state_value)
 
   ## Scope
   def test_no_scope_included_fails(self):

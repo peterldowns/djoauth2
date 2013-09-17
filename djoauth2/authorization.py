@@ -29,8 +29,6 @@ class AuthorizationCodeGenerator(object):
     >>>   try:
     >>>     auth_code_generator.validate(request)
     >>>   except AuthorizationException as e:
-    >>>     print e
-    >>>     raise e
     >>>     return auth_code_generator.make_error_redirect()
     >>>
     >>>   if request.method == 'GET':
@@ -305,8 +303,8 @@ class AuthorizationCodeGenerator(object):
     new_authorization_code = AuthorizationCode.objects.create(
         user=self.user,
         client=self.client,
-        redirect_uri=(self.request_redirect_uri
-                      if self.request_redirect_uri
+        redirect_uri=(self.redirect_uri
+                      if self.redirect_uri
                       else None)
     )
     new_authorization_code.scopes = self.valid_scope_objects
