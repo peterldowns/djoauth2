@@ -118,6 +118,76 @@ class AuthorizationCodeGenerator(object):
     if not self.user.is_authenticated():
       raise UnauthenticatedUser('user must be authenticated')
 
+    client_id = request.REQUEST.get('client_id')
+    if not client_id:
+      raise InvalidRequest('no "client_id" provided')
+
+    try:
+      self.client = Client.objects.get(key=client_id)
+    except Client.DoesNotExist:
+      raise InvalidRequest('"client_id" does not exist')
+
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.2.3 :
+    #
+    #     If multiple redirection URIs have been registered, if only part of
+    #     the redirection URI has been registered, or if no redirection URI has
+    #     been registered, the client MUST include a redirection URI with the
+    #     authorization request using the "redirect_uri" request parameter.
+    #
+    self.request_redirect_uri = request.REQUEST.get('redirect_uri')
+    if not (self.client.redirect_uri or self.request_redirect_uri):
+      raise InvalidRequest('no "redirect_uri" provided or registered')
+
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.2.3 :
+    #
+    #     When a redirection URI is included in an authorization request, the
+    #     authorization server MUST compare and match the value received
+    #     against at least one of the registered redirection URIs (or URI
+    #     components) as defined in [RFC3986] Section 6, if any redirection
+    #     URIs were registered.  If the client registration included the full
+    #     redirection URI, the authorization server MUST compare the two URIs
+    #     using simple string comparison as defined in [RFC3986] Section 6.2.1.
+    #
+    if (self.client.redirect_uri and
+          self.request_redirect_uri and
+          self.client.redirect_uri != self.request_redirect_uri):
+      raise InvalidRequest('"redirect_uri" does not matched the registered URI')
+
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.2 :
+    #
+    #     The redirection endpoint URI MUST be an absolute URI as defined by
+    #     [RFC3986] Section 4.3.
+    #
+    redirect_uri = self.client.redirect_uri or self.request_redirect_uri
+    if not absolute_http_url_re.match(redirect_uri):
+      raise InvalidRequest('"redirect_uri" must be absolute')
+
+    # TODO(peter): redirection URI MUST not include a fragment component, from
+    # http://tools.ietf.org/html/rfc6749#section-3.1.2 :
+    #
+    #     The endpoint URI MUST NOT include a fragment component.
+    #
+
+    # TODO(peter): require that redirection URIs be secure, as recommended by
+    # http://tools.ietf.org/html/rfc6749#section-3.1.2.1 :
+    #
+    #     The redirection endpoint SHOULD require the use of TLS as described
+    #     in Section 1.6 when the requested response type is "code" or "token",
+    #     or when the redirection request will result in the transmission of
+    #     sensitive credentials over an open network.  This specification does
+    #     not mandate the use of TLS because at the time of this writing,
+    #     requiring clients to deploy TLS is a significant hurdle for many
+    #     client developers.  If TLS is not available, the authorization server
+    #     SHOULD warn the resource owner about the insecure endpoint prior to
+    #     redirection (e.g., display a message during the authorization
+    #     request).
+    #
+
+    # Only store the redirect_uri value if it validates successfully. The
+    # 'make_error_redirect' method will use the 'missing_redirect_uri' passed
+    # to the '__init__' method if 'self.redirect_uri' is None.
+    self.redirect_uri = redirect_uri
+
     # From http://tools.ietf.org/html/rfc6749#section-3.1.1 :
     #
     #     The client informs the authorization server of the desired grant type
@@ -172,77 +242,6 @@ class AuthorizationCodeGenerator(object):
                     for name in (requested_scope_names - valid_scope_names))))
 
 
-    client_id = request.REQUEST.get('client_id')
-    if not client_id:
-      raise InvalidRequest('no "client_id" provided')
-
-    try:
-      self.client = Client.objects.get(key=client_id)
-    except Client.DoesNotExist:
-      raise InvalidRequest('"client_id" does not exist')
-
-    # From http://tools.ietf.org/html/rfc6749#section-3.1.2.3 :
-    #
-    #     If multiple redirection URIs have been registered, if only part of
-    #     the redirection URI has been registered, or if no redirection URI has
-    #     been registered, the client MUST include a redirection URI with the
-    #     authorization request using the "redirect_uri" request parameter.
-    #
-    self.request_redirect_uri = request.REQUEST.get('redirect_uri')
-    if not (self.client.redirect_uri or self.request_redirect_uri):
-      raise InvalidRequest('no "redirect_uri" provided or registered')
-
-    # From http://tools.ietf.org/html/rfc6749#section-3.1.2.3 :
-    #
-    #     When a redirection URI is included in an authorization request, the
-    #     authorization server MUST compare and match the value received
-    #     against at least one of the registered redirection URIs (or URI
-    #     components) as defined in [RFC3986] Section 6, if any redirection
-    #     URIs were registered.  If the client registration included the full
-    #     redirection URI, the authorization server MUST compare the two URIs
-    #     using simple string comparison as defined in [RFC3986] Section 6.2.1.
-    #
-    if (self.client.redirect_uri and
-          self.request_redirect_uri and
-          self.client.redirect_uri != self.request_redirect_uri):
-      raise InvalidRequest('"redirect_uri" does not matched the registered URI')
-
-    # From http://tools.ietf.org/html/rfc6749#section-3.1.2 :
-    #
-    #     The redirection endpoint URI MUST be an absolute URI as defined by
-    #     [RFC3986] Section 4.3.
-    #
-    redirect_uri = self.client.redirect_uri or self.request_redirect_uri
-    if not absolute_http_url_re.match(redirect_uri):
-      raise InvalidRequest('"redirect_uri" must be absolute')
-
-    # TODO(peter): reidrection URI MUST not include a fragment component, from
-    # http://tools.ietf.org/html/rfc6749#section-3.1.2 :
-    #
-    #     The endpoint URI MUST NOT include a fragment component.
-    #
-
-    # TODO(peter): require that redirection URIs be secure, as recommended by
-    # http://tools.ietf.org/html/rfc6749#section-3.1.2.1 :
-    #
-    #     The redirection endpoint SHOULD require the use of TLS as described
-    #     in Section 1.6 when the requested response type is "code" or "token",
-    #     or when the redirection request will result in the transmission of
-    #     sensitive credentials over an open network.  This specification does
-    #     not mandate the use of TLS because at the time of this writing,
-    #     requiring clients to deploy TLS is a significant hurdle for many
-    #     client developers.  If TLS is not available, the authorization server
-    #     SHOULD warn the resource owner about the insecure endpoint prior to
-    #     redirection (e.g., display a message during the authorization
-    #     request).
-    #
-    if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
-      raise InvalidRequest('all requests must use TLS')
-
-    # Only store the redirect_uri value if it validates successfully. The
-    # 'make_error_redirect' method will use the 'missing_redirect_uri' passed
-    # to the '__init__' method if 'self.redirect_uri' is None.
-    self.redirect_uri = redirect_uri
 
   def get_request_uri_parameters(self, as_dict=False):
     """ Return the URI parameters from a request passed to the 'validate' method
