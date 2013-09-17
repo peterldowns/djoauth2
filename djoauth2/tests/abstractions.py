@@ -88,9 +88,9 @@ class DJOAuth2TestClient(TestClient):
                            method,
                            data=None,
                            header_data=None,
-                           meta=True,
                            use_header_auth=True,
-                           use_ssl=None):
+                           use_ssl=None,
+                           endpoint_uri=None):
 
     # Respect default ssl settings if no value is passed.
     if use_ssl is None:
@@ -119,7 +119,11 @@ class DJOAuth2TestClient(TestClient):
 
     request_method = getattr(self, method.lower())
 
-    response = request_method(self.token_endpoint, params, **headers)
+    response = request_method(
+        endpoint_uri or self.token_endpoint,
+        params,
+        **headers)
+
     self.load_token_data(response)
     return response
 
