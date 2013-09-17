@@ -154,6 +154,23 @@ class AuthorizationCodeGenerator(object):
     if not absolute_http_url_re.match(redirect_uri):
       raise InvalidRequest('"redirect_uri" must be absolute')
 
+    # TODO(peter): require that redirection URIs be secure, as recommended by
+    # http://tools.ietf.org/html/rfc6749#section-3.1.2.1 :
+    #
+    #     The redirection endpoint SHOULD require the use of TLS as described
+    #     in Section 1.6 when the requested response type is "code" or "token",
+    #     or when the redirection request will result in the transmission of
+    #     sensitive credentials over an open network.  This specification does
+    #     not mandate the use of TLS because at the time of this writing,
+    #     requiring clients to deploy TLS is a significant hurdle for many
+    #     client developers.  If TLS is not available, the authorization server
+    #     SHOULD warn the resource owner about the insecure endpoint prior to
+    #     redirection (e.g., display a message during the authorization
+    #     request).
+    #
+    if settings.DJOAUTH2_SSL_ONLY and not request.is_secure():
+      raise InvalidRequest('all requests must use TLS')
+
     # Only store the redirect_uri value if it validates successfully. The
     # 'make_error_redirect' method will use the 'missing_redirect_uri' passed
     # to the '__init__' method if 'self.redirect_uri' is None.
@@ -245,8 +262,8 @@ class AuthorizationCodeGenerator(object):
 # TODO(peter): add a callback for successful authorization and unsuccessful
 # authorization -- or just use signals instead? Yeah, use signals.
 def make_authorization_endpoint(missing_redirect_uri,
-                       authorization_endpoint_uri,
-                       authorization_template_name):
+                                authorization_endpoint_uri,
+                                authorization_template_name):
   """ Returns a endpoint that handles OAuth authorization requests.
 
   @missing_redirect_uri: a string, the URI to which to redirect the user when
@@ -270,7 +287,6 @@ def make_authorization_endpoint(missing_redirect_uri,
           value in the 'action' attribute on a <form> element.
 
   """
-  # TODO(peter): improve this documentation.
   @login_required
   @require_http_methods(['GET', 'POST'])
   def authorization_endpoint(request):
@@ -279,8 +295,6 @@ def make_authorization_endpoint(missing_redirect_uri,
     try:
       auth_code_generator.validate(request)
     except AuthorizationException as e:
-      print e
-      raise e
       return auth_code_generator.make_error_redirect()
 
     if request.method == 'GET':
