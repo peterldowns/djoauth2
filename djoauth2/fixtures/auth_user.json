@@ -12,7 +12,7 @@
       "is_superuser": false,
       "last_login": "2012-11-06 05:06:17.252447",
       "last_name": "User",
-      "password": "sha1$mbQPy7lnO1zb$75af66a0f8426863d46fd8dd6cb9ea317b1e2db7",
+      "password": "sha1$$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8",
       "user_permissions": [],
       "username": "testuser@locu.com"
     }
