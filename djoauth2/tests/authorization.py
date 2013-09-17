@@ -767,17 +767,3 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
     self.assertEqual(redirect_location, self.missing_redirect_uri)
     self.assertNotEqual(redirect_location, self.client.redirect_uri)
 
-
-class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
-  pass
-  #def test_make_authorization_endpoint_returns_a_function(self):
-  #  raise NotImplementedError()
-  #def test_created_endpoint_redirects_to_passed_uri(self):
-  #  raise NotImplementedError()
-  #def test_created_endpoint_renders_passed_template(self):
-  #  raise NotImplementedError()
-  #def test_created_endpoint_redirects_to_missing_uri(self):
-  #  raise NotImplementedError()
-
-
-
