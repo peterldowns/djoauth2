@@ -15,14 +15,22 @@ from djoauth2.tests import test_urls
 from djoauth2.tests.abstractions import DJOAuth2TestCase
 
 
-def make_test_endpoint(endpoint_uri, authorizer):
+def make_validation_endpoint(endpoint_uri, authorizer):
+  """ Returns a dummy endpoint that validates a request and returns 'OK'.
+
+  Takes a full path URI to install the endpoint and an authorizer to perform
+  the validation.
+  """
   def authorization_endpoint(request):
     authorizer.validate(request)
     return HttpResponse('OK')
 
+  # Remove preceding slash for endpoint regex
+  if endpoint_uri[0] == '/':
+    endpoint_uri = endpoint_uri[1:]
+
   test_urls.urlpatterns += patterns('',
-      (r'^' + endpoint_uri.replace('/', '', 1),
-       authorization_endpoint),
+      (r'^{}'.format(endpoint_uri), authorization_endpoint),
   )
 
   return authorization_endpoint
@@ -33,10 +41,15 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
   dummy_endpoint_uri = '/oauth2/authorization/'
 
   def test_get_requests_succeed(self):
+    """ The authorization server MUST suport the use of the HTTP "GET" method
+    for the authorization endpoint.
+
+    See http://tools.ietf.org/html/rfc6749#section-3.1 .
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -51,10 +64,15 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
 
   def test_post_requests_succeed(self):
+    """ [The authorization server] MAY suport the use of the HTTP "POST" method
+    [for the authorization endpoint] as well.
+
+    See http://tools.ietf.org/html/rfc6749#section-3.1 .
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -70,11 +88,12 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
   ## SSL
   def test_ssl_required_secure_request_succeeds(self):
+    """ When SSL is required (as per spec), secure requests should succeed. """
     settings.DJOAUTH2_SSL_ONLY = True
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -88,11 +107,12 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
     self.assertEqual(response.content, 'OK')
 
   def test_ssl_required_insecure_request_fails(self):
+    """ When SSL is required (as per spec), insecure requests should fail. """
     settings.DJOAUTH2_SSL_ONLY = True
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -104,11 +124,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
           use_ssl=False)
 
   def test_no_ssl_required_secure_request_succeeds(self):
+  """ When SSL is NOT required (in violation of the spec), secure requests
+  should still fail. """
     settings.DJOAUTH2_SSL_ONLY = False
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -122,11 +144,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
     self.assertEqual(response.content, 'OK')
 
   def test_no_ssl_required_insecure_request_succeeds(self):
+    """ When SSL is NOT required (in violation of the spec), insecure requests
+    should succeed. """
     settings.DJOAUTH2_SSL_ONLY = False
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -141,10 +165,14 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
   # Authentication
   def test_user_not_authenticated_fails(self):
+    """ The Authorization endpoint requires a logged-in user to accept or deny
+    the request. If the user is not logged in, request can not be granted, and
+    the request should fail.
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.logout()
     self.assertNotIn(settings.SESSION_COOKIE_NAME, self.oauth_client.cookies)
@@ -156,10 +184,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
           endpoint=self.dummy_endpoint_uri)
 
   def test_response_type_not_code_fails(self):
+    """ The implementation only supports the "code" "response_type" -- any
+    other "response_type" parameter should fail.
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -188,10 +219,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
   ## Scope
   def test_no_scope_included_fails(self):
+    """ Authorization requests that do not include a "scope" parameter should
+    fail.
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -205,10 +239,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
           endpoint=self.dummy_endpoint_uri)
 
   def test_nonexistent_scope_included_fails(self):
+    """ Authorization requests that request access to non-existent Scopes
+    should fail.
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -226,10 +263,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
           endpoint=self.dummy_endpoint_uri)
 
   def test_single_scope_included_succeeds(self):
+    """ Authorization requests that request access to a single Scope should
+    succeed.
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -246,10 +286,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
 
   def test_multiple_scopes_included_succeeds(self):
+    """ Authorization requests that request access to multiple Scopes should
+    succeed.
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -266,10 +309,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
   # Client ID
   def test_no_client_id_included_fails(self):
+    """ Authorization requests must include a "client_id" parameter; if they
+    do not, they should fail.
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
@@ -283,10 +329,13 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
           endpoint=self.dummy_endpoint_uri)
 
   def test_nonexistent_client_id_fails(self):
+    """ Authorization requests that include a non-existentn "client_id"
+    parameter should fail.
+    """
     self.initialize(scope_names=['verify'])
 
     auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
-    make_test_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
 
     self.oauth_client.login(username=self.user.username, password='password')
 
