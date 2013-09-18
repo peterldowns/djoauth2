@@ -9,10 +9,10 @@ djoauth2 Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`access_token_authenticator` Module
+:mod:`access_token` Module
 ----------------------------------------
 
-.. automodule:: djoauth2.access_token_authenticator
+.. automodule:: djoauth2.access_token
     :members:
     :undoc-members:
     :show-inheritance:
@@ -25,10 +25,10 @@ djoauth2 Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`authorization_code_generator` Module
+:mod:`authorization` Module
 ------------------------------------------
 
-.. automodule:: djoauth2.authorization_code_generator
+.. automodule:: djoauth2.authorization
     :members:
     :undoc-members:
     :show-inheritance:
