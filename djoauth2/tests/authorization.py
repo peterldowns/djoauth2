@@ -1,5 +1,6 @@
 # coding: utf-8
 import sys
+from types import FunctionType
 from urlparse import urlparse
 from urlparse import parse_qsl
 from urlparse import urlunparse
@@ -7,32 +8,26 @@ from urlparse import urlunparse
 from django.conf import settings
 from django.conf.urls.defaults import patterns
 from django.http import HttpResponse
+from django.http import HttpResponseRedirect
 from django.utils.importlib import import_module
 
 from djoauth2.authorization import AuthorizationCodeGenerator
 from djoauth2.authorization import AuthorizationException
+from djoauth2.authorization import make_authorization_endpoint
 from djoauth2.authorization import InvalidRequest
 from djoauth2.authorization import InvalidScope
 from djoauth2.authorization import UnauthenticatedUser
 from djoauth2.authorization import UnsupportedResponseType
 from djoauth2.helpers import update_parameters
 from djoauth2.models import Scope
+from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
 from djoauth2.tests import test_urls
 from djoauth2.tests.abstractions import DJOAuth2TestCase
 
 
-
-def make_validation_endpoint(endpoint_url, authorizer):
-  """ Returns a dummy endpoint that validates a request and returns 'OK'.
-
-  Also installs the endpoint to the global URLconf at the requested
-  endpoint_url.
-  """
-  def authorization_endpoint(request):
-    authorizer.validate(request)
-    return HttpResponse('OK')
-
+def add_to_url_conf(endpoint_url, endpoint_func):
+  """ Adds an endpoint to the default URLconf. """
   # Reload the default URLs so that the temporary endpoint does not remain in
   # the URLconf from test to test.  Taken from
   # http://codeinthehole.com/writing/how-to-reload-djangos-url-config/ .
@@ -47,8 +42,21 @@ def make_validation_endpoint(endpoint_url, authorizer):
 
   # Add the temporary endpoint to the URLconf at the specified url.
   urlpatterns += patterns('',
-      (r'^{}'.format(endpoint_url), authorization_endpoint),
+      (r'^{}'.format(endpoint_url), endpoint_func),
   )
+
+
+def make_validation_endpoint(endpoint_url, authorizer):
+  """ Returns a dummy endpoint that validates a request and returns 'OK'.
+
+  Also installs the endpoint to the global URLconf at the requested
+  endpoint_url.
+  """
+  def authorization_endpoint(request):
+    authorizer.validate(request)
+    return HttpResponse('OK')
+
+  add_to_url_conf(endpoint_url, authorization_endpoint)
 
   return authorization_endpoint
 
@@ -100,6 +108,27 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
     self.assertEqual(response.status_code, 200)
     self.assertEqual(response.content, 'OK')
+
+  def test_head_put_delete_options_requests_fail(self):
+    """ The authorization server does not support any methods other than "GET"
+    and "POST".
+
+    See http://tools.ietf.org/html/rfc6749#section-3.1 .
+    """
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    for method in ['HEAD', 'PUT', 'DELETE', 'OPTIONS']:
+      with self.assertRaises(InvalidRequest):
+        response = self.oauth_client.make_authorization_request(
+            client_id=self.client.key,
+            scope_string=self.oauth_client.scope_string,
+            endpoint=self.dummy_endpoint_uri,
+            method=method)
 
   def test_ssl_required_secure_request_succeeds(self):
     """ When SSL is required (as per spec), secure requests should succeed. """
@@ -1060,4 +1089,162 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
     self.assertEqual(redirect_location, self.client.redirect_uri)
     self.assertNotEqual(redirect_location, self.missing_redirect_uri)
+
+
+class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
+  missing_redirect_uri = '/oauth2/missing_redirect_uri/'
+  dummy_endpoint_uri = '/oauth2/authorization/'
+  authorization_template_name = 'djoauth2/authorization.html'
+
+  def test_helper_returns_function(self):
+    """ The helper should return a function. """
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+
+    self.assertIsInstance(endpoint, FunctionType)
+
+  def test_unauthenticated_user_redirected_to_login(self):
+    """ Unauthenticated users should be redirected to settings.LOGIN_URL. """
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.logout()
+    self.assertNotIn(settings.SESSION_COOKIE_NAME, self.oauth_client.cookies)
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    self.assertEqual(response.status_code, 302)
+    self.assertIsInstance(response, HttpResponseRedirect)
+    location = response.get('location')
+    self.assertEqual(urlparse(location).path, settings.LOGIN_URL)
+
+  def test_valid_get_request_returns_rendered_template(self):
+    """ A valid GET request should return a rendered version of the given
+    template.
+    """
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    self.assertEqual(response.status_code, 200)
+
+    self.assertTemplateUsed(response, self.authorization_template_name)
+
+  def test_invalid_redirect_uri_request_redirects_to_missing_redirect_uri(self):
+    """ A GET request with an invalid redirect URI should result in a redirect
+    to the given missing redirect URI.
+    """
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.client.redirect_uri = 'invalid'
+    self.client.save()
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    self.assertIsInstance(response, HttpResponseRedirect)
+    self.assertEqual(response.status_code, 302)
+    self.assertEqual(urlparse(response.get('location')).path,
+                     urlparse(self.missing_redirect_uri).path)
+
+  def test_post_request_with_acceptance_results_in_success_redirect(self):
+    """ A successful confirmation should result in a success redirect with a
+    "code" parameter relating to a newly created AuthorizationCode object.
+    """
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    get_response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    post_response = self.oauth_client.post(
+        get_response.context['form_action'],
+        {'user_action' : 'Accept'})
+
+
+    self.assertIsInstance(post_response, HttpResponseRedirect)
+    self.assertEqual(post_response.status_code, 302)
+    self.assertEqual(urlparse(post_response.get('location')).path,
+                     urlparse(self.client.redirect_uri).path)
+
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(post_response.get('location')).query))
+
+    self.assertIn('code', parsed_url_parameters)
+    self.assertTrue(parsed_url_parameters['code'])
+    self.assertTrue(
+        AuthorizationCode.objects
+                         .filter(value=parsed_url_parameters['code'])
+                         .exists())
+
+  def test_post_request_with_denial_results_in_error_redirect(self):
+    """ If a User denies the Client's request, the response should be a
+    redirect to the Client's registered endpoint and contain details about the
+    error.
+    """
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    get_response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    post_response = self.oauth_client.post(
+        get_response.context['form_action'],
+        {'user_action' : 'Denial (any value but Accept, really)'})
+
+
+    self.assertIsInstance(post_response, HttpResponseRedirect)
+    self.assertEqual(post_response.status_code, 302)
+    self.assertEqual(urlparse(post_response.get('location')).path,
+                     urlparse(self.client.redirect_uri).path)
+
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(post_response.get('location')).query))
+
+    self.assertIn('error', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error'], 'access_denied')
+    self.assertIn('error_description', parsed_url_parameters)
 
