@@ -575,6 +575,123 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
           scope_string=self.oauth_client.scope_string,
           endpoint=self.dummy_endpoint_uri)
 
+  def test_redirect_uri_with_fragment_fails(self):
+    """ The redirection endpoint URI MUST not include a fragment component.
+
+    See http://tools.ietf.org/html/rfc6749#section-3.1.2 .
+    """
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'https://locu.com/#fragmentValue'
+    self.client.save()
+
+    with self.assertRaises(InvalidRequest):
+      response = self.oauth_client.make_authorization_request(
+          client_id=self.client.key,
+          scope_string=self.oauth_client.scope_string,
+          endpoint=self.dummy_endpoint_uri)
+
+  def test_ssl_required_secure_redirect_uri_succeeds(self):
+    """ When SSL is required (as suggested by the spec), secure requests should
+    succeed.
+    """
+    settings.DJOAUTH2_SSL_ONLY = True
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'https://locu.com'
+    self.client.save()
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri,
+        use_ssl=True)
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+  def test_ssl_required_insecure_redirect_uri_fails(self):
+    """ When SSL is required (as suggested by the spec), insecure requests should
+    fail.
+    """
+    settings.DJOAUTH2_SSL_ONLY = True
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'http://locu.com'
+    self.client.save()
+
+    with self.assertRaises(InvalidRequest):
+      response = self.oauth_client.make_authorization_request(
+          client_id=self.client.key,
+          scope_string=self.oauth_client.scope_string,
+          endpoint=self.dummy_endpoint_uri,
+          use_ssl=True)
+
+
+  def test_no_ssl_required_secure_redirect_uri_succeeds(self):
+    """ When SSL is NOT required (against the recommendations of the spec),
+    secure requests should still succeed.
+    """
+    settings.DJOAUTH2_SSL_ONLY = False
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'https://locu.com'
+    self.client.save()
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri,
+        use_ssl=True)
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+  def test_no_ssl_required_insecure_redirect_uri_succeeds(self):
+    """ When SSL is NOT required (against the recommendations of the spec),
+    secure requests should still succeed.
+    """
+    settings.DJOAUTH2_SSL_ONLY = False
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'http://locu.com'
+    self.client.save()
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri,
+        use_ssl=True)
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
   def test_redirect_uri_query_parameters_preserved_on_success(self):
     """ Redirection endpoint URIs MAY include a query component, which MUST be
     retained when adding additional query parameters, such as during the
@@ -690,7 +807,6 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
     self.assertEqual(redirect_location, self.client.redirect_uri)
     self.assertNotEqual(redirect_location, self.missing_redirect_uri)
 
-
   def test_success_response_redirects_to_valid_uri(self):
     """ When a registered redirect URI is valid, the success redirect should
     direct the user to the registered URI.
@@ -730,8 +846,8 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
     self.assertNotEqual(redirect_location, self.missing_redirect_uri)
 
   def test_error_response_does_not_redirect_to_non_absolute_uri(self):
-    """ When a registered redirect URI is valid, the success redirect should
-    direct the user to the registered URI.
+    """ When a redirect URI is invalid, error responses should instead redirect
+    to the registered missing redirect URI endpoint.
     """
     self.initialize(scope_names=['verify'])
 
@@ -766,4 +882,182 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
     self.assertEqual(redirect_location, self.missing_redirect_uri)
     self.assertNotEqual(redirect_location, self.client.redirect_uri)
+
+  def test_error_response_does_not_redirect_to_uri_with_fragment(self):
+    """ When a redirect URI is invalid, error responses should instead redirect
+    to the registered missing redirect URI endpoint.
+    """
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'https://locu.com/#fragmentValue'
+    self.client.save()
+
+    with self.assertRaises(InvalidRequest):
+      response = self.oauth_client.make_authorization_request(
+          client_id=self.client.key,
+          scope_string=self.oauth_client.scope_string,
+          endpoint=self.dummy_endpoint_uri)
+
+    error_redirect = auth_code_generator.make_error_redirect()
+
+    # Show that the error redirect was directed to the default missing redirect
+    # URI, and not the registered, and invalid, URI.
+    parsed_redirect_uri = urlparse(error_redirect.get('location'))
+    redirect_location = urlunparse((
+      parsed_redirect_uri.scheme,
+      parsed_redirect_uri.netloc,
+      parsed_redirect_uri.path,
+      '',
+      '',
+      ''))
+
+    self.assertEqual(redirect_location, self.missing_redirect_uri)
+    self.assertNotEqual(redirect_location, self.client.redirect_uri)
+
+  def test_error_response_does_not_redirect_to_insecure_redirect_uri_when_ssl_required(self):
+    """ When SSL is required, error redirect responses should NOT direct the
+    user to insecure endpoints, and instead use the missing URI redirect.
+    """
+    settings.DJOAUTH2_SSL_ONLY = True
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'http://locu.com/'
+    self.client.save()
+
+    with self.assertRaises(InvalidRequest):
+      response = self.oauth_client.make_authorization_request(
+          client_id=self.client.key,
+          scope_string=self.oauth_client.scope_string,
+          endpoint=self.dummy_endpoint_uri)
+
+    error_redirect = auth_code_generator.make_error_redirect()
+
+    parsed_redirect_uri = urlparse(error_redirect.get('location'))
+    redirect_location = urlunparse((
+      parsed_redirect_uri.scheme,
+      parsed_redirect_uri.netloc,
+      parsed_redirect_uri.path,
+      '',
+      '',
+      ''))
+
+    self.assertEqual(redirect_location, self.missing_redirect_uri)
+    self.assertNotEqual(redirect_location, self.client.redirect_uri)
+
+  def test_error_response_does_redirect_to_insecure_redirect_uri_when_no_ssl_required(self):
+    """ When no SSL is required, error redirect responses should successfully
+    direct direct the user to insecure endpoints.
+    """
+    settings.DJOAUTH2_SSL_ONLY = False
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'http://locu.com/'
+    self.client.save()
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    error_redirect = auth_code_generator.make_error_redirect()
+
+    parsed_redirect_uri = urlparse(error_redirect.get('location'))
+    redirect_location = urlunparse((
+      parsed_redirect_uri.scheme,
+      parsed_redirect_uri.netloc,
+      parsed_redirect_uri.path,
+      '',
+      '',
+      ''))
+
+    self.assertEqual(redirect_location, self.client.redirect_uri)
+    self.assertNotEqual(redirect_location, self.missing_redirect_uri)
+
+  def test_success_response_redirects_to_secure_uri_when_no_ssl_required(self):
+    """ When no SSL is required, successful redirect responses should still
+    direct the user to secure endpoints.
+    """
+    settings.DJOAUTH2_SSL_ONLY = False
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'https://locu.com/'
+    self.client.save()
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    success_redirect = auth_code_generator.make_success_redirect()
+
+    parsed_redirect_uri = urlparse(success_redirect.get('location'))
+    redirect_location = urlunparse((
+      parsed_redirect_uri.scheme,
+      parsed_redirect_uri.netloc,
+      parsed_redirect_uri.path,
+      '',
+      '',
+      ''))
+
+    self.assertEqual(redirect_location, self.client.redirect_uri)
+    self.assertNotEqual(redirect_location, self.missing_redirect_uri)
+
+  def test_success_response_redirects_to_insecure_uri_when_no_ssl_required(self):
+    """ When no SSL is required, successful redirect responses should direct the
+    user to insecure endpoints.
+    """
+    settings.DJOAUTH2_SSL_ONLY = False
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.client.redirect_uri = 'http://locu.com/'
+    self.client.save()
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    success_redirect = auth_code_generator.make_success_redirect()
+
+    parsed_redirect_uri = urlparse(success_redirect.get('location'))
+    redirect_location = urlunparse((
+      parsed_redirect_uri.scheme,
+      parsed_redirect_uri.netloc,
+      parsed_redirect_uri.path,
+      '',
+      '',
+      ''))
+
+    self.assertEqual(redirect_location, self.client.redirect_uri)
+    self.assertNotEqual(redirect_location, self.missing_redirect_uri)
 

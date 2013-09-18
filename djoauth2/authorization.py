@@ -1,5 +1,6 @@
 # coding: utf-8
 from urllib import urlencode
+from urlparse import urlparse
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
@@ -162,14 +163,14 @@ class AuthorizationCodeGenerator(object):
     if not absolute_http_url_re.match(redirect_uri):
       raise InvalidRequest('"redirect_uri" must be absolute')
 
-    # TODO(peter): redirection URI MUST not include a fragment component, from
-    # http://tools.ietf.org/html/rfc6749#section-3.1.2 :
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.2 :
     #
     #     The endpoint URI MUST NOT include a fragment component.
     #
+    if urlparse(redirect_uri).fragment:
+      raise InvalidRequest('"redirect_uri" must not contain a fragment')
 
-    # TODO(peter): require that redirection URIs be secure, as recommended by
-    # http://tools.ietf.org/html/rfc6749#section-3.1.2.1 :
+    # From http://tools.ietf.org/html/rfc6749#section-3.1.2.1 :
     #
     #     The redirection endpoint SHOULD require the use of TLS as described
     #     in Section 1.6 when the requested response type is "code" or "token",
@@ -182,6 +183,9 @@ class AuthorizationCodeGenerator(object):
     #     redirection (e.g., display a message during the authorization
     #     request).
     #
+    if (settings.DJOAUTH2_SSL_ONLY and
+        urlparse(redirect_uri).scheme != 'https'):
+      raise InvalidRequest('"redirect_uri" must use TLS')
 
     # Only store the redirect_uri value if it validates successfully. The
     # 'make_error_redirect' method will use the 'missing_redirect_uri' passed
@@ -200,6 +204,7 @@ class AuthorizationCodeGenerator(object):
     #           Section 4.2.1, or a registered extension value as described by
     #           Section 8.4.
     #
+    # This implementation only supports the "code" "response_type".
     response_type = request.REQUEST.get('response_type')
     if response_type != 'code':
       raise UnsupportedResponseType('"response_type" must be "code"')
