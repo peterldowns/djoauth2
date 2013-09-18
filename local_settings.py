@@ -17,17 +17,20 @@ if not settings.configured and not os.environ.get('DJANGO_SETTINGS_MODULE'):
               'ENGINE': 'django.db.backends.sqlite3',
           },
         },
-        INSTALLED_APPS=[
-            'django.contrib.auth',
-            'django.contrib.admin',
-            'django.contrib.contenttypes',
-            'django.contrib.sessions',
-            'djoauth2',
+      INSTALLED_APPS=[
+          'django.contrib.auth',
+          'django.contrib.admin',
+          'django.contrib.contenttypes',
+          'django.contrib.sessions',
+          'djoauth2',
         ],
-        TEMPLATE_DIRS=(
+      TEMPLATE_DIRS=(
           os.path.join(SITE_ROOT, 'djoauth2/tests/templates'),
         ),
-        ROOT_URLCONF='djoauth2.tests.test_urls',
-        DEBUG=False,
+      ROOT_URLCONF='djoauth2.tests.test_urls',
+      FIXTURE_DIRS=(
+          os.path.join(SITE_ROOT, 'djoauth2/tests/fixtures'),
+        ),
+      DEBUG=False,
     )
 
