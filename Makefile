@@ -1,12 +1,17 @@
-.PHONY: clean test docs
+.PHONY: clean tests coverage docs
 
-all: test
+all: coverage docs
 
 clean:
 	- find . -type f -name "*.pyc" -delete
 
-test: clean
-	python runtests.py
+tests: clean
+	./runtests.py
+
+coverage: clean
+	coverage run ./runtests.py
+	coverage html
+	coverage report
 
 docs:
 	pushd docs && make html && popd

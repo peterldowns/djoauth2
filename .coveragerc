@@ -1,0 +1,12 @@
+[run]
+branch = True
+
+[report]
+source = djoauth2
+include = djoauth2/*
+omit =
+  djoauth2/tests/*
+  djoauth2/admin*
+
+[html]
+directory = docs/coverage
