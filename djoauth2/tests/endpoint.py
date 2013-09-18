@@ -160,7 +160,7 @@ class TestOAuthScopeEndpointDecorator(DJOAuth2TestCase):
     access_token = self.create_access_token(self.user, self.client)
 
     api_request = self.oauth_client.make_api_request(access_token, {})
-    api_request.META['HTTP_AUTHORIZATION'] = 'This is not a valid auth header'
+    api_request.META['HTTP_AUTHORIZATION'] = 'INVALID'
 
     api_endpoint = make_oauth_protected_endpoint('verify')
 

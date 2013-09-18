@@ -123,7 +123,7 @@ class TestAccessTokenEndpoint(DJOAuth2TestCase):
         self.client,
         authcode.value,
         header_data={
-          'HTTP_AUTHORIZATION': 'This_Is_Not_Valid_HTTP_AUTHORIZATION',
+          'HTTP_AUTHORIZATION': 'INVALID',
         },
         use_header_auth=True)
 
@@ -176,9 +176,6 @@ class TestAccessTokenEndpoint(DJOAuth2TestCase):
     response = self.oauth_client.request_token_from_authcode(
         self.client,
         authcode.value,
-        header_data={
-          'HTTP_AUTHORIZATION': 'Basic ' + 'ThisIsInvalidBase64',
-        },
         use_header_auth=True,
         endpoint_uri="{}?client_id={}&client_secret={}".format(
           self.oauth_client.token_endpoint,
@@ -286,19 +283,36 @@ class TestAccessTokenEndpoint(DJOAuth2TestCase):
     self.assert_token_failure(response, 401)
 
   def test_invalid_grant_type_fails(self):
-    """ If an Authorization Code / Grant does not exist, then the request should
+    """ If a request is made without a valid grant type, the request should
     fail.
     """
     self.initialize(scope_names=['verify', 'autologin'])
 
     authcode = self.create_authorization_code(self.user, self.client)
-    fake_authcode_value = "myfakeauthcodelol"
-    self.assertNotEqual(authcode, fake_authcode_value)
-    self.assertFalse(
-        AuthorizationCode.objects.filter(value=fake_authcode_value).exists())
 
     response = self.oauth_client.request_token_from_authcode(
-        self.client, fake_authcode_value)
+        self.client,
+        authcode.value,
+        data={
+          'grant_type': 'invalid'
+        })
+
+    self.assert_token_failure(response, 400)
+
+  def test_omitted_grant_type_fails(self):
+    """ If a request is made without a valid grant type, the request should
+    fail.
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+
+    authcode = self.create_authorization_code(self.user, self.client)
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client,
+        authcode.value,
+        data={
+          'grant_type': None,
+        })
 
     self.assert_token_failure(response, 400)
 
