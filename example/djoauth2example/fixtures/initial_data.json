@@ -1,0 +1,40 @@
+[
+  {
+    "model": "auth.user",
+    "pk": 1,
+    "fields": {
+      "date_joined": "2012-09-20 04:40:34",
+      "email": "exampleuser@locu.com",
+      "first_name": "Example",
+      "groups": [],
+      "is_active": true,
+      "is_staff": true,
+      "is_superuser": true,
+      "last_login": "2012-11-06 05:06:17.252447",
+      "last_name": "User",
+      "password": "sha1$$5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8",
+      "user_permissions": [],
+      "username": "exampleuser"
+    }
+  },
+  {
+    "model": "djoauth2.client",
+    "pk": 1,
+    "fields": {
+      "key": "be6f31235c6118273918c4c70f6768",
+      "secret": "89dcee4e6fe655377a19944c2bee9b",
+      "name": "Example Client",
+      "description": "An example OAuth2 client.",
+      "redirect_uri": "http://localhost:8080",
+      "user": 1
+    }
+  },
+  {
+    "model": "djoauth2.scope",
+    "pk": 1,
+    "fields": {
+      "name": "user_info",
+      "description": "Access basic information about the user."
+    }
+  }
+]

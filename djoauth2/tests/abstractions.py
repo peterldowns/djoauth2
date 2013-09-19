@@ -22,6 +22,7 @@ def remove_empty_parameters(params):
 
 
 class DJOAuth2TestClient(TestClient):
+
   def __init__(self, scope_names=None):
     # OAuth-related settings.
     self.authorization_endpoint = '/oauth2/authorization/'
@@ -206,6 +207,7 @@ class DJOAuth2TestClient(TestClient):
 
 
 class DJOAuth2TestCase(TestCase):
+  urls = 'djoauth2.tests.test_urls'
   fixtures = (
       'auth_user.json',
       'djoauth2_client.json',

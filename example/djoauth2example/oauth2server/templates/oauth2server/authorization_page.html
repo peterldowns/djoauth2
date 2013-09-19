@@ -1,0 +1,19 @@
+{% if client.image_url %}
+<img src="{{client.image_url}}" style="width: 200px; height: 200px; border: 1px solid black; margin: 10px;">
+{% endif %}
+
+<p>{{client.name}} is requesting access to the following scopes:</p>
+
+<ul>
+  {% for scope in scopes %}
+  <li> <b>{{scope.name}}</b>: {{scope.description}} </li>
+  {% endfor %}
+</ul>
+
+
+<form action="{{form_action}}" method="POST">
+  {% csrf_token %}
+  <div style="display: none;"> {{form}} </div>
+  <input type="submit" name="user_action" value="Decline"/>
+  <input type="submit" name="user_action" value="Accept"/>
+</form>

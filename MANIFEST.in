@@ -1,0 +1,7 @@
+include LICENSE
+include README.rst
+include setup.py
+include requirements.txt
+recursive-include djoauth2/fixtures *
+recursive-include djoauth2/templates *
+graft djoauth2

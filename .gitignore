@@ -1,6 +1,19 @@
+# Temporary files
 *.DS_Store
 *.pyc
-.coverage
+
+# Documentation
 docs/_build/*
+
+# Coverage
+.coverage
 docs/coverage
+
+# PYPI Distribution
+dist
+MANIFEST
+djoauth2.egg-info
+
+# Example application
+example/database
 

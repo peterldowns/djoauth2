@@ -16,3 +16,6 @@ coverage: clean
 docs:
 	pushd docs && make html && popd
 
+dist: clean
+	python setup.py sdist
+

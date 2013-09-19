@@ -1,0 +1,23 @@
+Steps to get started:
+
+(Optional: create a new virtualenv so that you don't clutter your installs)
+
+1. Install the necessary requriements by running ``pip install -r requirements.txt``
+
+2. Run the test suite with ``./manage.py test djoauth2``. If they don't all pass, file a bug!
+
+3. Set up database and install fixtures with ``./manage.py syncdb``.
+
+4. Start the webserver by running ``./manage.py runserver 8080``
+
+5. Log in to `the admin page <http://localhost:8080/admin/>`_ with the username
+   ``testuser`` and the password ``password``.  5. Check to make sure that
+   there is a ``DJOAuth2.Client`` by the name of ``Example Client`` and  a
+   ``DJOAuth2.Scope`` object by the name of ``user_info``. These should have
+   been installed by the ``syncdb`` command.
+
+OK, at this point you're ready to start making requests! I recommend using a
+helper library like `SimpleGeo's python-oauth2
+<https://github.com/simplegeo/python-oauth2>`_ to make constructing the URLs
+easier. If you'd like to do it by hand, there's always CURL :)
+
