@@ -7,8 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from djoauth2.decorators import oauth_scope
 
 
-@oauth_scope('user_info')
 @csrf_exempt
+@oauth_scope('user_info')
 def user_info(access_token, request):
   """ Return basic information about a user.
 
