@@ -341,7 +341,7 @@ With our code all set up, we're ready to sthart the webserver:
 
 Now, log in to the admin page and create a ``Client`` and a ``Scope``. Set up
 the client so that the ``redirect_uri`` field is a valid URI under your
-control.  While testing we often use URIs like ``http://localhost:11111`` that
+control.  While testing we often use URIs like ``http://localhost:1111`` that
 don't point to any server. The scope's ``name`` should be the same as that used
 to protect the ``api.views.user_info`` endpoint — in this case, ``user_info``.
 
@@ -349,8 +349,13 @@ to protect the ``api.views.user_info`` endpoint — in this case, ``user_info``.
 Interacting as a Client
 -----------------------
 
-We're ready to begin making requests as a client! Open a browser and visit the
-following URL:
+We're ready to begin making requests as a client! In this example, we'll grant our
+client access to a scope, exchange the resulting authorization code for an access token,
+and then make an API request. This is adapted from our example project's ``client_demo.py``
+script, which you can edit and run yourself.
+
+The first step is to grant our cleint authorization. Open a browser and visit
+the following URL:
 
 .. code::
 
@@ -360,12 +365,105 @@ following URL:
     response_type=code
 
 If it worked, you should see the results of rendering your authorization
-template.
+template. If you confirm the request, you should be redirected to the
+registered client's ``redirect_uri``. If you use a value like
+``http://localhost:1111``, your browser will show a "could not load this page"
+message. This is unimportant — what really matters is the "code" GET parameter
+in the URl. This is the value of the authorization code that was created by the
+server.
 
-Code Overview
-=============
+We must now exchange this code for an access token. We do this by making a
+``POST`` request like so:
+
+.. code::
+
+  POST http://localhost:8080/oauth2/token/ HTTP/1.1
+  Authorization: Basic {b64encode(client_id + ':' + client_secret)}
+  
+  code={authorization code value}&grant_type=authorization_code
+
+The ``Authorization`` header is used to identify us as the client that was
+granted the authorization code that we just received. The value should
+be the result of joining the client ID, a ':', and the client secret, and
+encoding the resulting string with base 64. In Python, this might look like:
+
+.. code:: python
+
+  import requests
+  from base64 import b64encode
+  token_response = requests.post(
+    'http://localhost:8080/oauth2/token/',
+    data={
+      'code': 'Xl4ryuwLJ6h2cTkW5K09aUpBQegmf8',
+      'grant_type': 'authorization_code',
+    },
+    headers={
+      'Authorization': 'Basic {}'.format(
+          b64encode('{}:{}'.format(client_key, client_secret))),
+    })
+  assert token_response.status_code == 200
+
+This will return a JSON dictionary with the access token, access token lifetime,
+and (if available) a refresh token. Continuing the example from above:
+
+.. code:: python
+
+  import json
+
+  token_data = json.loads(token_response.content)
+  access_token = token_data['access_token']
+  refresh_token = token_data.get('refresh_token', None)
+  access_token_lifetime_seconds = token_data['expires_in']
+
+With this access token, we can now make API requests on behalf of the user
+who granted us access! Again, continuing from above:
+
+.. code:: python
+
+  api_response = requests.post(
+    'http://localhost:8080/api/user_info/',
+    headers={
+      'Authorization': 'Bearer {}'.format(token_data['access_token'])
+    },
+    data={})
+  assert api_response.status_code == 200
+  print api_response.content
+  # {"username": "exampleuser",
+  #  "first_name": "Example",
+  #  "last_name": "User",
+  #  "email": "exampleuser@locu.com"}
 
 
+While the access token has not expired, you will be able to continue making API
+requests. Once it has expired, any API request will return an ``HTTP 401
+Unauthorized``. At that point, if you have a refresh token, you can exchange
+it for a new access token like so:
+
+.. code:: python
+
+  token_response = requests.post(
+    'http://localhost:8080/oauth2/token/',
+    data={
+      'refresh_token': 'h9EY74_58aueZqHskUwVmMiTngcW3I',
+      'grant_type': 'refresh_token',
+    },
+    headers={
+      'Authorization': 'Basic {}'.format(
+          b64encode('{}:{}'.format(client_key, client_secret))),
+    })
+  
+  assert token_response.status_code == 200
+  
+  new_token_data = json.loads(token_response.content)
+  new_access_token = new_token_data['access_token']
+  new_refresh_token = new_token_data.get('refresh_token', None)
+  new_access_token_lifetime_seconds = new_token_data['expires_in']
+
+As long as you have a refresh token, you can continue to exchange them for new
+access tokens. If your access token expires and you have lost the refresh token
+value, the refresh request fails, or you were never issued a refresh token,
+then you must begin again by redirecting the user to the authorization page.
+  
 .. _OAuth 2: http://tools.ietf.org/html/rfc6749
 .. _OAuth website: http://oauth.net/
 .. _an article: http://pydanny.com/the-sorry-state-of-python-oauth-providers.html

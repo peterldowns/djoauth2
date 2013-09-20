@@ -15,7 +15,7 @@ setup(
     packages=['djoauth2', 'djoauth2.tests'],
     include_package_data=True,
     license='MIT License',
-    description='OAuth 2.0 server implementatio.',
+    description='OAuth 2.0 server implementation.',
     long_description=README,
     url='https://github.com/peterldowns/djoauth2/',
     download_url='https://github.com/peterldowns/djoauth2/tarball/0.1.1',

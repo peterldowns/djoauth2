@@ -18,8 +18,10 @@ Steps to get started:
    ``DJOAuth2.Scope`` object by the name of ``user_info``. These should have
    been installed by the ``syncdb`` command.
 
-OK, at this point you're ready to start making requests! I recommend using a
-helper library like `SimpleGeo's python-oauth2
-<https://github.com/simplegeo/python-oauth2>`_ to make constructing the URLs
-easier. If you'd like to do it by hand, there's always CURL :)
+OK, at this point you're ready to start making requests as a client — check out
+the ``client_demo.py`` file for a ready-to-go example!
+
+.. code:: bash
+
+  ./client_demo.py
 
