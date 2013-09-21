@@ -25,7 +25,7 @@
       "secret": "89dcee4e6fe655377a19944c2bee9b",
       "name": "Example Client",
       "description": "An example OAuth2 client.",
-      "redirect_uri": "http://localhost:8080",
+      "redirect_uri": "http://localhost:1111",
       "user": 1
     }
   },

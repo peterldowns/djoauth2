@@ -1,5 +1,474 @@
-========
-DJOAuth2
+DJOauth2
 ========
 
-Hello!
+*Hey! Listen! This is an implementation of the* `OAuth 2`_ *specification for
+Django! If you already know what OAuth 2 is and why you want to use this
+implementation, jump ahead to the* `Quickstart Guide`_.  *Otherwise, read on!*
+
+What is DJOauth2?
+-----------------
+
+DJOAuth2 is an implementation of a *sane* subset of the `OAuth 2`_, which is
+described by the `OAuth Website`_ as
+
+  An open protocol to allow secure authorization in a simple and standard
+  method from web, mobile and desktop applications.
+
+
+The goal of this implementation is to provide a well-structured Django
+application that can be easily installed to add OAuth 2.0 provider capbility to
+existing projects. The official specification is very broad, and allows for
+many different ways for clients and servers to interact with each other. This
+implementation is a secure subset of these interactions in order to make it as
+easy as possible to reap the benefits of OAuth without having to struggle with
+the more difficult parts of the spec.
+
+OAuth, and this implementation, are best suited to solving the following
+problems:
+
+* Allowing for fine-grained API control — you want your users to choose which
+  applications have access to their data.
+* Acting as an authentication server, allowing other sites to "Log in with
+  <your app>".
+
+The `OAuth website`_ describes OAuth 2.0 as
+
+  An open protocol to allow secure authorization in a simple and standard
+  method from web, mobile and desktop applications.
+
+
+Why use DJOAuth2?
+-----------------
+
+In the fall of 2012, when this project began, we read `an article`_ by Daniel
+Greenfield (better known as pydanny) criticizing the dearth of high-quality,
+open-source OAuth 2.0 provider implementations in Python. The article contains
+a wishlist of features for any OAuth implementation:
+
+	• Near turnkey solution
+	• Working code (duplicates above bullet but I'm making a point)
+	• Working tutorials
+	• Documentation
+	• Commented code
+	• Linted code
+	• Test coverage > 80%
+
+This project aims to meet all of these goals, and in particular strives to be:
+
+* Easy to add to existing Django projects, with few dependencies or
+  requirements.
+* Easy to understand, by virtue of high-quality documentation and examples.
+* Functionally compliant with the offical specification.
+* Sane and secure by default — the specification allows for insecure behavior,
+  which has been exploited in many existing implementations by programmers such
+  as `Egor Homakov`_.
+* Well-documented and commented, in order to make it easy to understand how the
+  implementation complies with the specification.
+* Well-tested (see our coverage badge at the top of this README!)
+
+What is implemented?
+--------------------
+
+In order to best describe this implementation, we must first describe a few
+common terms used in the `OAuth specification`:
+
+	OAuth defines four roles:
+	
+	   resource owner
+	      An entity capable of granting access to a protected resource.
+	      When the resource owner is a person, it is referred to as an
+	      end-user.
+	
+	   resource server
+	      The server hosting the protected resources, capable of accepting
+	      and responding to protected resource requests using access tokens.
+	
+	   client
+	      An application making protected resource requests on behalf of the
+	      resource owner and with its authorization.  The term "client" does
+	      not imply any particular implementation characteristics (e.g.,
+	      whether the application executes on a server, a desktop, or other
+	      devices).
+	
+	   authorization server
+	      The server issuing access tokens to the client after successfully
+	      authenticating the resource owner and obtaining authorization.
+
+This implementation allows your application to act as a "resource server" and
+as an "authorization server". Your application's users are the "resource
+owners", and other applications which would like access to your users' data are
+the "clients".
+
+The specification describes two `types of clients`_, "confidential" and
+"public":
+
+   OAuth defines two client types, based on their ability to authenticate
+   securely with the authorization server (i.e., ability to maintain the
+   confidentiality of their client credentials):
+
+   confidential
+      Clients capable of maintaining the confidentiality of their credentials
+      (e.g., client implemented on a secure server with restricted access to
+      the client credentials), or capable of secure client authentication using
+      other means.
+
+   public
+      Clients incapable of maintaining the confidentiality of their credentials
+      (e.g., clients executing on the device used by the resource owner, such
+      as an installed native application or a web browser-based application),
+      and incapable of secure client authentication via any other means.
+
+   The client type designation is based on the authorization server's
+   definition of secure authentication and its acceptable exposure levels of
+   client credentials.  The authorization server SHOULD NOT make assumptions
+   about the client type.
+
+This implementation only supports "confidential" clients. Any web, mobile, or
+desktop application that acts as a client must also use some sort of secured
+server in order to protect its client credentials. Apps that are entirely
+native, or built entirely on the "client-side" of the web, are not supported.
+
+The most security decisions that are most important to the security of your
+application are:
+
+* The authorization endpint will only return authorization codes, which can
+  later be exchanged for access tokens.
+* Password credentials grants, implicit grants, client credentials grants, and
+  all extension grants are not supported.
+* Public clients are not supported.
+* Every client is required to register its ``redirect_uri``.
+* All authorization, token, and API requests are required to use TLS encryption
+  in order to prevent credentials from being leaked to a third-party. In
+  addition, the registered ``redirect_uri`` must also be secured with TLS. 
+* Clients are required to CSRF-protect their redirection endpoints.
+
+These decisions have been made in an attempt to decrease the attack
+surface-area of the implementation. The specification has a great overview of
+`security considerations`_ that contains reasoning for many of these decisions.
+
+In addition, we only support `Bearer tokens`_ in an effort to make interacting
+with the implementation as simple as possible for clients. This means no
+fiddling with MAC-signing or hashing!
+
+Quickstart Guide
+================
+
+Requirements
+------------
+
+DJOAuth2 has been tested and developed with the following:
+
+* Python 2.7+
+* Django 1.5.2+
+* `Django AppConf`_ 0.6
+
+Installation
+------------
+
+1. Install the project with ``pip``:
+
+.. code:: bash
+
+	$ pip install djoauth2
+
+Adding ``djoauth2`` to an existing application.
+-----------------------------------------------
+
+First, add ``djoauth2`` to the ``INSTALLED_APPS`` list in your project's ``settings.py``:
+
+.. code:: python
+
+  INSTALLED_APPS = [
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.admin',
+    # ...
+    # ... your other custom apps
+    # ...
+    'djoauth2',
+  ]
+
+Optionally, for developing without SSL (**NOT for production code**), add the
+following setting to turn off ``djoauth2``'s SSL-enforcement:
+
+.. code:: python
+
+ 	if DEBUG:
+	  DJOAUTH2_SSL_ONLY = False
+
+**Do not** set this to ``False`` in production code: SSL is mandated by the
+specification.  This value is only designed to make it easier to *develop* with
+OAuth.
+
+Install the models:
+
+.. code:: bash
+
+	$ python manage.py syncdb
+
+Run the tests — they should all pass!
+
+.. code:: bash
+
+	$ python manage.py test djoauth2
+
+Now that we know that ``djoauth2`` works, it's time to set up the URL endpoints
+so that clients can make requests. Here's the ``urls.py`` file from our example
+application:
+
+.. code:: python
+
+  from django.conf.urls import patterns, include, url
+  from django.contrib import admin
+
+  from djoauth2.authorization import make_authorization_endpoint
+
+  admin.autodiscover()
+
+  urlpatterns = patterns('',
+      # Admin, for creating new Client and Scope objects. You can also create
+      # these from the command line but it's easiest from the Admin.
+      url(r'^admin/', include(admin.site.urls)),
+
+      # The endpoint for creating and exchanging access tokens and refresh
+      # tokens is handled entirely by the djoauth2 library.
+      (r'^oauth2/token/$', 'djoauth2.views.access_token_endpoint'),
+
+      # The authorization endpoint, a page where each "resource owner" will
+      # be shown the details of the permissions being requested by the
+      # "client".
+      (r'^oauth2/authorization/$', make_authorization_endpoint(
+          # The URI of a page to show when a "client" makes a malformed or
+          # insecure request and their registered redirect URI cannot be shown.
+          missing_redirect_uri='/oauth2/missing_redirect_uri/',
+          # This endpoint's URI.
+          authorization_endpoint_uri='/oauth2/authorization/',
+          # The name of the template to render to show the "resource owner" the
+          # details of the "client's" request.
+          authorization_template_name='oauth2server/authorization_page.html')),
+
+      # The page to show when Client redirection URIs are misconfigured or
+      # invalid. This should be a nice, simple error page.
+      (r'^oauth2/missing_redirect_uri/$', 'oauth2server.views.missing_redirect_uri'),
+
+
+      # An access-protected API endpoint.
+      (r'^api/user_info/$', 'api.views.user_info'),
+  )
+
+The template passed to the ``make_authorization_endpoint`` helper will be
+rendered with the following context:
+
+* ``form``: a Django form with no fields.
+* ``client``: The ``djoauth2.models.Client`` requesting access to the user's
+  information.
+* ``scopes``: a list of ``djoauth2.models.Scope``, one for each of the scopes
+  requested by the client.
+* ``form_action``: the URI to which the form should be submitted, for use in the
+  ``action=""`` attribute on a ``<form>`` element.
+
+The very simple template in our example application looks like this:
+
+.. code:: html+django
+
+  {% if client.image_url %}
+    <img src="{{client.image_url}}">
+  {% endif %}
+
+  <p>{{client.name}} is requesting access to the following scopes:</p>
+
+  <ul>
+    {% for scope in scopes %}
+    <li> <b>{{scope.name}}</b>: {{scope.description}} </li>
+    {% endfor %}
+  </ul>
+
+
+  <form action="{{form_action}}" method="POST">
+    {% csrf_token %}
+    <div style="display: none;"> {{form}} </div>
+    <input type="submit" name="user_action" value="Decline"/>
+    <input type="submit" name="user_action" value="Accept"/>
+  </form>
+
+Now define the resource that we're protecting (``api.views.user_info`` from the
+URl conf.) Here's the code from our example application's ``api/views.py``:
+
+.. code:: python
+
+  # coding: utf-8
+  import json
+
+  from django.http import HttpResponse
+  from django.views.decorators.csrf import csrf_exempt
+
+  from djoauth2.decorators import oauth_scope
+
+
+  @csrf_exempt
+  @oauth_scope('user_info')
+  def user_info(access_token, request):
+    """ Return basic information about a user.
+
+    Limited to OAuth clients that have receieved authorization to the 'user_info'
+    scope.
+    """
+    user = access_token.user
+    data = {
+        'username': user.username,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'email': user.email}
+
+    return HttpResponse(content=json.dumps(data),
+                        content_type='application/json',
+                        status=200)
+
+Any existing endpoint can be easily protected by our ``@oauth_scope``
+decorator; just modify the signature so that it expects a
+``djoauth2.models.AccessToken`` as the first argument.
+
+
+With our code all set up, we're ready to sthart the webserver:
+
+.. code:: bash
+
+	$ python manage.py runserver 8080
+
+Now, log in to the admin page and create a ``Client`` and a ``Scope``. Set up
+the client so that the ``redirect_uri`` field is a valid URI under your
+control.  While testing we often use URIs like ``http://localhost:1111`` that
+don't point to any server. The scope's ``name`` should be the same as that used
+to protect the ``api.views.user_info`` endpoint — in this case, ``user_info``.
+
+
+Interacting as a Client
+-----------------------
+
+We're ready to begin making requests as a client! In this example, we'll grant our
+client access to a scope, exchange the resulting authorization code for an access token,
+and then make an API request. This is adapted from our example project's ``client_demo.py``
+script, which you can edit and run yourself.
+
+The first step is to grant our cleint authorization. Open a browser and visit
+the following URL:
+
+.. code::
+
+  http://localhost:8080/oauth2/authorization/?
+    scope={the name of the scope you created}&
+    client_id={the 'key' value from the Client you created}&
+    response_type=code
+
+If it worked, you should see the results of rendering your authorization
+template. If you confirm the request, you should be redirected to the
+registered client's ``redirect_uri``. If you use a value like
+``http://localhost:1111``, your browser will show a "could not load this page"
+message. This is unimportant — what really matters is the "code" GET parameter
+in the URl. This is the value of the authorization code that was created by the
+server.
+
+We must now exchange this code for an access token. We do this by making a
+``POST`` request like so:
+
+.. code::
+
+  POST http://localhost:8080/oauth2/token/ HTTP/1.1
+  Authorization: Basic {b64encode(client_id + ':' + client_secret)}
+  
+  code={authorization code value}&grant_type=authorization_code
+
+The ``Authorization`` header is used to identify us as the client that was
+granted the authorization code that we just received. The value should
+be the result of joining the client ID, a ':', and the client secret, and
+encoding the resulting string with base 64. In Python, this might look like:
+
+.. code:: python
+
+  import requests
+  from base64 import b64encode
+  token_response = requests.post(
+    'http://localhost:8080/oauth2/token/',
+    data={
+      'code': 'Xl4ryuwLJ6h2cTkW5K09aUpBQegmf8',
+      'grant_type': 'authorization_code',
+    },
+    headers={
+      'Authorization': 'Basic {}'.format(
+          b64encode('{}:{}'.format(client_key, client_secret))),
+    })
+  assert token_response.status_code == 200
+
+This will return a JSON dictionary with the access token, access token lifetime,
+and (if available) a refresh token. Continuing the example from above:
+
+.. code:: python
+
+  import json
+
+  token_data = json.loads(token_response.content)
+  access_token = token_data['access_token']
+  refresh_token = token_data.get('refresh_token', None)
+  access_token_lifetime_seconds = token_data['expires_in']
+
+With this access token, we can now make API requests on behalf of the user
+who granted us access! Again, continuing from above:
+
+.. code:: python
+
+  api_response = requests.post(
+    'http://localhost:8080/api/user_info/',
+    headers={
+      'Authorization': 'Bearer {}'.format(token_data['access_token'])
+    },
+    data={})
+  assert api_response.status_code == 200
+  print api_response.content
+  # {"username": "exampleuser",
+  #  "first_name": "Example",
+  #  "last_name": "User",
+  #  "email": "exampleuser@locu.com"}
+
+
+While the access token has not expired, you will be able to continue making API
+requests. Once it has expired, any API request will return an ``HTTP 401
+Unauthorized``. At that point, if you have a refresh token, you can exchange
+it for a new access token like so:
+
+.. code:: python
+
+  token_response = requests.post(
+    'http://localhost:8080/oauth2/token/',
+    data={
+      'refresh_token': 'h9EY74_58aueZqHskUwVmMiTngcW3I',
+      'grant_type': 'refresh_token',
+    },
+    headers={
+      'Authorization': 'Basic {}'.format(
+          b64encode('{}:{}'.format(client_key, client_secret))),
+    })
+  
+  assert token_response.status_code == 200
+  
+  new_token_data = json.loads(token_response.content)
+  new_access_token = new_token_data['access_token']
+  new_refresh_token = new_token_data.get('refresh_token', None)
+  new_access_token_lifetime_seconds = new_token_data['expires_in']
+
+As long as you have a refresh token, you can continue to exchange them for new
+access tokens. If your access token expires and you have lost the refresh token
+value, the refresh request fails, or you were never issued a refresh token,
+then you must begin again by redirecting the user to the authorization page.
+  
+.. _OAuth 2: http://tools.ietf.org/html/rfc6749
+.. _OAuth website: http://oauth.net/
+.. _an article: http://pydanny.com/the-sorry-state-of-python-oauth-providers.html
+.. _Egor Homakov: http://homakov.blogspot.com/
+.. _types of clients: http://tools.ietf.org/html/rfc6749#section-2.1
+.. _security considerations: http://tools.ietf.org/html/rfc6749#section-10
+.. _Bearer tokens: http://tools.ietf.org/html/rfc6750
+.. _Django AppConf: https://github.com/jezdez/django-appconf
