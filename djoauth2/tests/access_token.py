@@ -442,8 +442,6 @@ class TestRequestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
     """
     self.initialize(scope_names=['verify', 'autologin'])
 
-    # Create an authorization code, which must have a redirect because there is
-    # no default redirect for this client
     authcode = self.create_authorization_code(self.user, self.client, {
           'redirect_uri' : self.client.redirect_uri
         })
@@ -483,6 +481,7 @@ class TestRequestAccessTokenFromAuthorizationCode(DJOAuth2TestCase):
         })
 
     self.assert_token_failure(response, 400)
+
 
   def test_after_success_authorization_code_is_invalidated(self):
     """ After successfully being exchanged for an AccessToken, an

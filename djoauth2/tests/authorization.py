@@ -1090,6 +1090,81 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
     self.assertEqual(redirect_location, self.client.redirect_uri)
     self.assertNotEqual(redirect_location, self.missing_redirect_uri)
 
+  def test_redirect_uri_included_in_request_sets_value_on_authcode(self):
+    """ When a Client includes a "redirect_uri" parameter as part of a valid
+    Authorization request, the resulting AuthorizationCode's "redirect_uri"
+    field should contain the passed value.
+    """
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri,
+        custom={
+          'redirect_uri': self.client.redirect_uri
+        },
+        method='GET')
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+    successful_redirect = auth_code_generator.make_success_redirect()
+
+    # Grab the URL parameters from the redirect response's Location header and
+    # turn them into a dict object.
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(successful_redirect.get('location')).query))
+
+    self.assertIn('code', parsed_url_parameters)
+
+    authcode = AuthorizationCode.objects.get(
+        value=parsed_url_parameters['code'])
+    self.assertIsNotNone(authcode.redirect_uri)
+    self.assertEqual(authcode.redirect_uri, self.client.redirect_uri)
+
+  def test_redirect_uri_not_included_in_request_does_not_set_value_on_authcode(self):
+    """ When a Client includes a "redirect_uri" parameter as part of a valid
+    Authorization request, the resulting AuthorizationCode's "redirect_uri"
+    field should contain the passed value.
+    """
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri,
+        custom={
+          'redirect_uri': None,
+        },
+        method='GET')
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+    successful_redirect = auth_code_generator.make_success_redirect()
+
+    # Grab the URL parameters from the redirect response's Location header and
+    # turn them into a dict object.
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(successful_redirect.get('location')).query))
+
+    self.assertIn('code', parsed_url_parameters)
+
+    authcode = AuthorizationCode.objects.get(
+        value=parsed_url_parameters['code'])
+    self.assertIsNone(authcode.redirect_uri)
+
 
 class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
   missing_redirect_uri = '/oauth2/missing_redirect_uri/'
@@ -1247,4 +1322,146 @@ class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
     self.assertIn('error', parsed_url_parameters)
     self.assertEqual(parsed_url_parameters['error'], 'access_denied')
     self.assertIn('error_description', parsed_url_parameters)
+
+
+class TestAuthorizationAndTokenEndpoints(DJOAuth2TestCase):
+  missing_redirect_uri = '/oauth2/missing_redirect_uri/'
+  dummy_endpoint_uri = '/oauth2/authorization/'
+
+  def test_authorization_request_included_redirect_uri_and_same_redirect_uri_passed_succeeds(self):
+    """ If a "redirect_uri" value is included in the initial request for
+    Authorization, the same "redirect_uri" MUST be included in the AccessToken
+    request.
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri,
+        custom={
+          'redirect_uri': self.client.redirect_uri,
+        },
+        method='GET')
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+    successful_redirect = auth_code_generator.make_success_redirect()
+
+    # Grab the URL parameters from the redirect response's Location header and
+    # turn them into a dict object.
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(successful_redirect.get('location')).query))
+
+    self.assertIn('code', parsed_url_parameters)
+
+    authcode = AuthorizationCode.objects.get(
+        value=parsed_url_parameters['code'])
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client,
+        authcode.value,
+        data={
+          'redirect_uri': authcode.redirect_uri,
+        })
+
+    self.assert_token_success(response)
+
+
+  def test_authorization_request_included_redirect_uri_and_no_redirect_uri_passed_fails(self):
+    """ If a "redirect_uri" value is included in the initial request for
+    Authorization, the same "redirect_uri" MUST be included in the AccessToken
+    request.
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri,
+        custom={
+          'redirect_uri': self.client.redirect_uri,
+        },
+        method='GET')
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+    successful_redirect = auth_code_generator.make_success_redirect()
+
+    # Grab the URL parameters from the redirect response's Location header and
+    # turn them into a dict object.
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(successful_redirect.get('location')).query))
+
+    self.assertIn('code', parsed_url_parameters)
+
+    authcode = AuthorizationCode.objects.get(
+        value=parsed_url_parameters['code'])
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client,
+        authcode.value,
+        data={
+          'redirect_uri': None,
+        })
+
+    self.assert_token_failure(response)
+
+  def test_authorization_request_omitted_redirect_uri_and_no_redirect_uri_passed_succeeds(self):
+    """ If a "redirect_uri" value is included in the initial request for
+    Authorization, the same "redirect_uri" MUST be included in the AccessToken
+    request. If the "redirect_uri" value is omitted, then it is not necessary
+    to include it in the AccessToken request.
+    """
+    self.initialize(scope_names=['verify', 'autologin'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri,
+        custom={
+          'redirect_uri': None,
+        },
+        method='GET')
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, 'OK')
+
+    successful_redirect = auth_code_generator.make_success_redirect()
+
+    # Grab the URL parameters from the redirect response's Location header and
+    # turn them into a dict object.
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(successful_redirect.get('location')).query))
+
+    self.assertIn('code', parsed_url_parameters)
+
+    authcode = AuthorizationCode.objects.get(
+        value=parsed_url_parameters['code'])
+
+    response = self.oauth_client.request_token_from_authcode(
+        self.client,
+        authcode.value,
+        data={
+          'redirect_uri': None,
+        })
+
+    self.assert_token_success(response)
 
