@@ -128,8 +128,7 @@ desktop application that acts as a client must also use some sort of secured
 server in order to protect its client credentials. Apps that are entirely
 native, or built entirely on the "client-side" of the web, are not supported.
 
-The most security decisions that are most important to the security of your
-application are:
+The decisions that are most important to the security of your application are:
 
 * The authorization endpint will only return authorization codes, which can
   later be exchanged for access tokens.
@@ -354,7 +353,7 @@ client access to a scope, exchange the resulting authorization code for an acces
 and then make an API request. This is adapted from our example project's ``client_demo.py``
 script, which you can edit and run yourself.
 
-The first step is to grant our cleint authorization. Open a browser and visit
+The first step is to grant our client authorization. Open a browser and visit
 the following URL:
 
 .. code::
