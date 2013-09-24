@@ -1,10 +1,30 @@
-.. DJOAuth2 documentation master file, created by
-   sphinx-quickstart on Wed Sep 11 19:31:28 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Welcome!
+========
+.. image:: https://badge.fury.io/py/djoauth2.png
+    :target: http://badge.fury.io/py/djoauth2
 
-Welcome to DJOAuth2's documentation!
-====================================
+.. image:: https://travis-ci.org/Locu/djoauth2.png
+    :target: https://travis-ci.org/Locu/djoauth2.png
+
+Test coverage:
+
+.. code::
+
+    Name                     Stmts   Miss Branch BrMiss  Cover
+    ----------------------------------------------------------
+    djoauth2/__init__            1      0      0      0   100%
+    djoauth2/access_token       67      2     24      3    95%
+    djoauth2/authorization     120      2     45      5    96%
+    djoauth2/conf               16      0      0      0   100%
+    djoauth2/decorators         12      0      2      0   100%
+    djoauth2/exceptions          5      0      0      0   100%
+    djoauth2/helpers            23      0      8      2    94%
+    djoauth2/models             77     10     10      2    86%
+    djoauth2/signals             2      0      0      0   100%
+    djoauth2/views             139      2     53      1    98%
+    ----------------------------------------------------------
+    TOTAL                      462     16    142     13    95%
+
 
 Contents:
 
