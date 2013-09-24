@@ -9,9 +9,11 @@ Welcome to DJOAuth2's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 4
+    :maxdepth: 4
 
-   djoauth2
+    overview
+    quickstart
+    API
 
 
 Indices and tables

@@ -1,4 +1,4 @@
-djoauth2 Package
+The ``djoauth2`` Code
 ================
 .. module:: djoauth2
 
