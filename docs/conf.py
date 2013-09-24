@@ -43,7 +43,9 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'DJOAuth2'
-copyright = u'2013, Peter Downs'
+copyright = u'(see the license file)'
+html_show_copyright = False
+
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
