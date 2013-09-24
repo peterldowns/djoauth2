@@ -4,16 +4,25 @@ from django.utils.functional import wraps
 from djoauth2.access_token import AccessTokenAuthenticator
 
 def oauth_scope(*scope_names):
-  """ Only allow requests with sufficient OAuth scope access.
+  """ Return a decorator that restricts requests to those authorized with
+  a certain scope or scopes.
 
-  Returns a decorator that restricts requests to those that authenticate
-  successfully and have access to the given scope names.
 
-  For example, to restrict access to a given endpoint:
+  For example, to restrict access to a given endpoint like this:
+
+    >>> @require_login
+    >>> def secret_attribute_endpoint(request, *args, **kwargs):
+    >>>   user = request.user
+    >>>   return HttpResponse(json.dumps({
+    >>>       'super_secret_attribute' : user.super_secret_attribute
+    >>>     })
+
+  ...is as simple as adding the decorator and adding an additional argument to
+  the function signature:
 
     >>> @oauth_scope('foo', 'bar')
     >>> def secret_attribute_endpoint(access_token, request, *args, **kwargs):
-    >>>   # Because of the decorator, the function is guarnateed to only be run
+    >>>   # Because of the decorator, the function is guaranteed to only be run
     >>>   # if the request includes proper access to the 'foo' and 'bar'
     >>>   # scopes.
     >>>   user = access_token.user
@@ -21,13 +30,14 @@ def oauth_scope(*scope_names):
     >>>       'super_secret_attribute' : user.super_secret_attribute
     >>>     })
 
-  The first argument to the wrapped endpoint will now be an AccessToken
-  object. The second argument will be the original HttpRequest, and all
-  other parameters will follow.
+  The first argument to the wrapped endpoint will now be an
+  :py:class:`djoauth2.models.AccessToken` object. The second argument will be
+  the original Django ``HttpRequest``, and all other parameters included in the
+  requests (due to URL-matching or any other method) will follow.
 
-  We strongly recommend that you use this decorator to protect your API
-  endpoints instead of manually instantiating an AccessTokenAuthenticator
-  object.
+  We **strongly recommend** that you use this decorator to protect your API
+  endpoints instead of manually instantiating a
+  djoauth2.access_token.AccessTokenAuthenticator object.
   """
   authenticator = AccessTokenAuthenticator(required_scope_names=scope_names)
 

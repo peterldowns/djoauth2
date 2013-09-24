@@ -60,7 +60,10 @@ class AuthorizationCodeGenerator(object):
     >>>     else:
     >>>       return auth_code_generator.make_error_redirect()
 
-  An example of the 'authorization_page.html' template:
+  An example template (``'oauth2server/authorization_page.html'`` from the
+  above example) should look something like this:
+
+  .. code-block:: html
 
       <p>{{client.name}} is requesting access to the following scopes:</p>
 
@@ -78,13 +81,15 @@ class AuthorizationCodeGenerator(object):
         <input type="submit" name="user_action" value="Accept"/>
       </form>
 
+  We **strongly recommend** that you avoid instantiating this class. Instead,
+  prefer the :py:func:`djoauth2.authorization.make_authorization_endpoint`
   """
   def __init__(self, missing_redirect_uri):
     """ Create a new AuthorizationCodeGenerator.
 
-    @missing_redirect_uri: a string URI to which to redirect the user if the
-        authorization request is not valid and no redirect is able to be parsed
-        from the request.
+    :param missing_redirect_uri: a string URI to which to redirect the user if
+        the authorization request is not valid and no redirect is able to be
+        parsed from the request.
     """
     self.missing_redirect_uri = missing_redirect_uri
     # Values that will be set by the 'validate' method.
@@ -97,9 +102,14 @@ class AuthorizationCodeGenerator(object):
     self.request = None
 
   def validate(self, request):
-    """ Raise an exception if the authorization request is invalid.
+    """ Check that a Client's authorization request is valid.
 
-    Read the specification: http://tools.ietf.org/html/rfc6749#section-4.1 .
+    If the request is invalid or malformed in any way, raises the appropriate
+    exception.  Read `the relevant section of the specification
+    <http://tools.ietf.org/html/rfc6749#section-4.1 .>`_ for descriptions of
+    each type of error.
+
+    :raises: a :py:class:`AuthorizationException` if the request is invalid.
     """
 
     # From http://tools.ietf.org/html/rfc6749#section-3.1 :
@@ -251,12 +261,14 @@ class AuthorizationCodeGenerator(object):
   def get_request_uri_parameters(self, as_dict=False):
     """ Return the URI parameters from a request passed to the 'validate' method
 
-    @as_dict: if True, returns the parameters as a dictionary. If False, returns
-        the parameters as a URI-encoded string.
+    The query parameters returned by this method **MUST** be included in the
+    ``action=""`` URI of the authorization form presented to the user. This
+    carries the original authorization request parameters across the request to
+    show the form to the request that submits the form.
 
-    The parameters returned by this method MUST be included in the 'action' URL
-    of the authorization form presented to the user. This carries the original
-    authorization request parameters across the request.
+    :param as_dict: default ``False``. If ``True``, returns the parameters as a
+        dictionary. If ``False``, returns the parameters as a URI-encoded
+        string.
     """
     if not self.request:
       raise ValueError('request must have been passed to the "validate" method')
@@ -264,10 +276,10 @@ class AuthorizationCodeGenerator(object):
     return (dict if as_dict else urlencode)(self.request.REQUEST.items())
 
   def make_error_redirect(self):
-    """ Return an HttpResponseRedirect when the authorization request fails.
+    """ Return a Django ``HttpResponseRedirect`` describing the request failure.
 
-    If the 'validate' method raises an error, the authorization endpoint should
-    return the result of this method like so:
+    If the :py:meth:`validate` method raises an error, the authorization
+    endpoint should return the result of calling this method like so:
 
       >>> auth_code_generator = (
       >>>     AuthorizationCodeGenerator('/oauth2/missing_redirect_uri/'))
@@ -276,10 +288,11 @@ class AuthorizationCodeGenerator(object):
       >>> except AuthorizationException:
       >>>   return auth_code_generator.make_error_redirect()
 
-    If there is no known "redirect_uri" (because it is malformed, or the Client
-    is invalid, or if the supplied "redirect_uri" does not match the regsitered
-    value, or some other request failure) then the response will redirect to
-    the 'missing_redirect_uri' passed to the '__init__' method.
+    If there is no known Client ``redirect_uri`` (because it is malformed, or
+    the Client is invalid, or if the supplied ``redirect_uri`` does not match
+    the regsitered value, or some other request failure) then the response will
+    redirect to the ``missing_redirect_uri`` passed to the :py:meth:`__init__`
+    method.
     """
     if not self.redirect_uri:
       return HttpResponseRedirect(self.missing_redirect_uri)
@@ -298,11 +311,11 @@ class AuthorizationCodeGenerator(object):
         update_parameters(self.redirect_uri, response_params))
 
   def make_success_redirect(self):
-    """ Return an HttpResponseRedirect when the authorization request succeeds.
+    """ Return a Django ``HttpResponseRedirect`` describing the request success.
 
     The custom authorization endpoint should return the result of this method
     when the user grants the Client's authorization request. The request is
-    assumed to have successfully been vetted by the 'validate' method.
+    assumed to have successfully been vetted by the :py:meth:`validate` method.
     """
     new_authorization_code = AuthorizationCode.objects.create(
         user=self.user,
@@ -333,26 +346,29 @@ def make_authorization_endpoint(missing_redirect_uri,
                                 authorization_template_name):
   """ Returns a endpoint that handles OAuth authorization requests.
 
-  @missing_redirect_uri: a string, the URI to which to redirect the user when
-      the request is made by a client without a valid redirect URI.
 
-  @authorization_endpoint_uri: a string, the URI of this endpoint. Used by the
-      authorization form so that the form is submitted to this same endpoint.
+  The template described by ``authorization_template_name`` is rendered with a
+  Django ``RequestContext`` with the following variables:
 
-  @authorization_template_name: a string, the name of the template to render
-      when handling authorization requests.
+  * ``form``: a Django ``Form`` with no fields.
+  * ``client``: The :py:class:`djoauth2.models.Client` requesting access to the
+    user's scopes.
+  * ``scopes``: A list of :py:class:`djoauth2.models.Scope`, one for each of
+    the scopes requested by the client.
+  * ``form_action``: The URI to which the form should be submitted -- use this
+    value in the ``action=""`` attribute on a ``<form>`` element.
 
-  The template described by @authorization_template_name is rendered with a
-  Django RequestContext with the following variables:
+  :param missing_redirect_uri: a string, the URI to which to redirect the user
+      when the request is made by a client without a valid redirect URI.
 
-      form: a Django form with no fields.
-      client: The djoauth2.models.Client requesting access to the user's
-          scopes
-      scopes: A list of djoauth2.models.Scope, one for each of the scopes
-          requested by the client.
-      form_action: The URI to which the form should be submitted -- use this
-          value in the 'action' attribute on a <form> element.
+  :param authorization_endpoint_uri: a string, the URI of this endpoint. Used
+      by the authorization form so that the form is submitted to this same
+      endpoint.
 
+  :param authorization_template_name: a string, the name of the template to
+      render when handling authorization requests.
+
+  :rtype: A view function endpoint.
   """
   @login_required
   @require_http_methods(['GET', 'POST'])

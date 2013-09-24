@@ -1,84 +1,52 @@
 djoauth2 Package
 ================
-
-:mod:`djoauth2` Package
------------------------
-
-.. automodule:: djoauth2
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. module:: djoauth2
 
 :mod:`access_token` Module
 ----------------------------------------
-
-.. automodule:: djoauth2.access_token
+.. autoclass:: djoauth2.access_token.AccessTokenAuthenticator
     :members:
     :undoc-members:
-    :show-inheritance:
+.. autoclass:: djoauth2.access_token.AuthenticationException
 
-:mod:`admin` Module
--------------------
-
-.. automodule:: djoauth2.admin
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 :mod:`authorization` Module
 ------------------------------------------
-
-.. automodule:: djoauth2.authorization
+.. autoclass:: djoauth2.authorization.AuthorizationCodeGenerator
     :members:
     :undoc-members:
-    :show-inheritance:
+.. autofunction:: djoauth2.authorization.make_authorization_endpoint
+.. autoclass:: djoauth2.authorization.AuthorizationException
+
 
 :mod:`conf` Module
 ------------------
-
-.. automodule:: djoauth2.conf
+.. autoclass:: djoauth2.conf.DJOAuth2Conf
     :members:
     :undoc-members:
-    :show-inheritance:
+
 
 :mod:`decorators` Module
 ------------------------
-
 .. automodule:: djoauth2.decorators
     :members:
     :undoc-members:
-    :show-inheritance:
+
 
 :mod:`exceptions` Module
 ------------------------
-
 .. automodule:: djoauth2.exceptions
     :members:
     :undoc-members:
-    :show-inheritance:
 
-:mod:`helpers` Module
----------------------
-
-.. automodule:: djoauth2.helpers
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 :mod:`models` Module
 --------------------
-
 .. automodule:: djoauth2.models
     :members:
-    :undoc-members:
-    :show-inheritance:
 
 
 :mod:`views` Module
 -------------------
-
-.. automodule:: djoauth2.views
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. autofunction:: djoauth2.views.access_token_endpoint
 

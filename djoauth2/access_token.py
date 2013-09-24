@@ -12,9 +12,10 @@ from djoauth2.models import Scope
 class AccessTokenAuthenticator(object):
   """ Allows easy authentication checking and error response creation.
 
-  See the 'validate' method's docstring for a usage example. We STRONGLY
-  RECOMMEND that you use the 'djoauth2.decorators.oauth_scope' method to
-  protect your API endpoints instead of manually instatiating this object.
+  See the :py:meth:`validate` method's docstring for a usage example. We
+  **strongly recommend** that you use the
+  :py:func:`djoauth2.decorators.oauth_scope` decorator to protect your API
+  endpoints instead of manually instatiating this object.
   """
 
   def __init__(self, required_scope_names=()):
@@ -25,14 +26,8 @@ class AccessTokenAuthenticator(object):
   def validate(self, request):
     """ Checks a request for proper authentication details.
 
-    Returns a tuple of (access_token, error_response_arguments), which
-    are described below.
-
-    @access_token: an AccessToken if the request is successfully authenticated,
-        otherwise None.
-    @error_response_arguments: None if the request is successfully
-        authenticated, otherwise a tuple of arguments to be used in a call to
-        the 'make_error_response' method.
+    Returns a tuple of ``(access_token, error_response_arguments)``, which are
+    designed to be passed to the :py:meth:`make_error_response` method.
 
     For example, to restrict access to a given endpoint:
 
@@ -46,6 +41,12 @@ class AccessTokenAuthenticator(object):
         >>>
         >>>   # ... can now return use access_token
         >>>
+
+    :rtype: When the request validates successfully, returns a
+        a tuple of (:py:class:`djoauth2.models.AccessToken`, ``None``).  If the
+        request fails to validate, returns a tuple of (``None``,
+        ``error_details_tuple``). The ``error_details_tuple`` is a tuple of
+        arguments to use to call the :py:func:`make_error_response` method.
 
     """
     # Ensure that all of the scopes that are being checked against exist.
@@ -121,14 +122,22 @@ class AccessTokenAuthenticator(object):
 
 
   def make_error_response(self, validation_exception, expose_errors):
-    """ Return an appropriate response on authentication failure.
-
-    Read the specification: http://tools.ietf.org/html/rfc6750#section-3.1 .
+    """ Return an appropriate ``HttpResponse`` on authentication failure.
 
     In case of an error, the specification only details the inclusion of the
-    'WWW-Authenticate' header. Additionally, when allowed by the specification,
-    we respond with error details formatted in JSON in the body of the
-    response.
+    ``WWW-Authenticate`` header. Additionally, when allowed by the
+    specification, we respond with error details formatted in JSON in the body
+    of the response. For more information, read the specification:
+    http://tools.ietf.org/html/rfc6750#section-3.1 .
+
+    :param validation_exception: A
+      :py:class:`djoauth2.access_token.AuthenticationException` raised by the
+      :py:meth:`validate` method.
+    :param expose_errors: A boolean describing whether or not to expose error
+      information in the error response, as described by the section of the
+      specification linked to above.
+
+    :rtype: a Django ``HttpResponse``.
     """
     authenticate_header = ['Bearer realm="{}"'.format(settings.DJOAUTH2_REALM)]
 
@@ -166,9 +175,10 @@ class AccessTokenAuthenticator(object):
 class AuthenticationException(DJOAuthException):
   """ Base class for exceptions related to API request authentication.
 
-  Read the Bearer Token specification for more details:
-    * http://tools.ietf.org/html/rfc6750#section-3.1
-    * http://tools.ietf.org/html/rfc6750#section-6.2
+  For more details, refer to the Bearer Token specification:
+
+  * http://tools.ietf.org/html/rfc6750#section-3.1
+  * http://tools.ietf.org/html/rfc6750#section-6.2
   """
   pass
 

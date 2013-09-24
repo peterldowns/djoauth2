@@ -15,11 +15,12 @@ from djoauth2.signals import refresh_token_used_after_invalidation
 
 @csrf_exempt
 def access_token_endpoint(request):
-  """ Generates AccessTokens if provided with sufficient authorization.
+  """ Generates :py:class:`djoauth2.models.AccessTokens` if provided with
+  sufficient authorization.
 
   This endpoint only supports two grant types:
-    * authorization_code: http://tools.ietf.org/html/rfc6749#section-4.1
-    * refresh_token: http://tools.ietf.org/html/rfc6749#section-6
+    * ``authorization_code``: http://tools.ietf.org/html/rfc6749#section-4.1
+    * ``refresh_token``: http://tools.ietf.org/html/rfc6749#section-6
 
   For further documentation, read http://tools.ietf.org/html/rfc6749#section-3.2
   """
