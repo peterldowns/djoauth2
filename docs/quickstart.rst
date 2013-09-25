@@ -6,8 +6,8 @@ Requirements
 
 DJOAuth2 has been tested and developed with the following:
 
-* Python 2.7+
-* Django 1.5.2+
+* Python 2.7.2
+* Django 1.4+
 * `Django AppConf`_ 0.6
 
 Installation
@@ -19,7 +19,7 @@ Installation
 
 	$ pip install djoauth2
 
-Adding ``djoauth2`` to an existing application.
+Adding ``djoauth2`` to an existing application
 -----------------------------------------------
 
 First, add ``djoauth2`` to the ``INSTALLED_APPS`` list in your project's ``settings.py``:
