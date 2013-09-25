@@ -34,6 +34,7 @@ Contents:
     overview
     quickstart
     API
+    contributing
 
 
 Indices and tables
