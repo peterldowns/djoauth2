@@ -1,15 +1,15 @@
-What is DJOauth2?
+What is DJOAuth2?
 -----------------
 
-DJOAuth2 is an implementation of a *sane* subset of the `OAuth 2`_, which is
-described by the `OAuth Website`_ as
+DJOAuth2 is an implementation of a *sane* subset of the `OAuth 2`_
+specification, which is described by the `OAuth Website`_ as
 
   An open protocol to allow secure authorization in a simple and standard
   method from web, mobile and desktop applications.
 
 
 The goal of this implementation is to provide a well-structured Django
-application that can be easily installed to add OAuth 2.0 provider capbility to
+application that can be easily installed to add OAuth 2.0 provider capability to
 existing projects. The official specification is very broad, and allows for
 many different ways for clients and servers to interact with each other. This
 implementation is a secure subset of these interactions in order to make it as
@@ -50,13 +50,13 @@ This project aims to meet all of these goals, and in particular strives to be:
 * Easy to add to existing Django projects, with few dependencies or
   requirements.
 * Easy to understand, by virtue of high-quality documentation and examples.
-* Functionally compliant with the offical specification.
+* Functionally compliant with the official specification.
 * Sane and secure by default — the specification allows for insecure behavior,
   which has been exploited in many existing implementations by programmers such
   as `Egor Homakov`_.
 * Well-documented and commented, in order to make it easy to understand how the
   implementation complies with the specification.
-* Well-tested (see our coverage badge at the top of this README!)
+* Well-tested (see the coverage details on the first page of these docs!)
 
 What is implemented?
 --------------------
@@ -122,7 +122,7 @@ native, or built entirely on the "client-side" of the web, are not supported.
 
 The decisions that are most important to the security of your application are:
 
-* The authorization endpint will only return authorization codes, which can
+* The authorization endpoint will only return authorization codes, which can
   later be exchanged for access tokens.
 * Password credentials grants, implicit grants, client credentials grants, and
   all extension grants are not supported.

@@ -162,7 +162,7 @@ URl conf.) Here's the code from our example application's ``api/views.py``:
   def user_info(access_token, request):
     """ Return basic information about a user.
 
-    Limited to OAuth clients that have receieved authorization to the 'user_info'
+    Limited to OAuth clients that have received authorization to the 'user_info'
     scope.
     """
     user = access_token.user
@@ -181,7 +181,7 @@ decorator; just modify the signature so that it expects a
 ``djoauth2.models.AccessToken`` as the first argument.
 
 
-With our code all set up, we're ready to sthart the webserver:
+With our code all set up, we're ready to start the webserver:
 
 .. code:: bash
 

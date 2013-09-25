@@ -2,7 +2,7 @@ Steps to get started:
 
 (Optional: create a new virtualenv so that you don't clutter your installs)
 
-1. Install the necessary requriements by running ``pip install -r requirements.txt``
+1. Install the necessary requirements by running ``pip install -r requirements.txt``
 
 2. Set up database and install fixtures with ``./manage.py syncdb``.
 
@@ -11,7 +11,7 @@ Steps to get started:
 4. Start the webserver by running ``./manage.py runserver 8080``
 
 5. Log in to `the admin page <http://localhost:8080/admin/>`_ with the username
-   ``testuser`` and the password ``password``.
+   ``exampleuser`` and the password ``password``.
 
 6. Check to make sure that
    there is a ``DJOAuth2.Client`` by the name of ``Example Client`` and  a
@@ -23,5 +23,5 @@ the ``client_demo.py`` file for a ready-to-go example!
 
 .. code:: bash
 
-  ./client_demo.py
+  $ ./client_demo.py
 
