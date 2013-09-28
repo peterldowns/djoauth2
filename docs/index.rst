@@ -1,10 +1,10 @@
 Welcome!
 ========
 .. image:: https://badge.fury.io/py/djoauth2.png
-    :target: http://badge.fury.io/py/djoauth2
+    :target: https://pypi.python.org/pypi/djoauth2
 
 .. image:: https://travis-ci.org/Locu/djoauth2.png
-    :target: https://travis-ci.org/Locu/djoauth2.png
+    :target: https://travis-ci.org/Locu/djoauth2
 
 Test coverage:
 
