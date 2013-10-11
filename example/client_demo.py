@@ -37,6 +37,13 @@ auth_url = '{}?scope={}&client_id={}&response_type=code'.format(
     client_key)
 
 print ''
+print 'Log in via the admin page (username: exampleuser, password: password)'
+print ''
+print 'http://localhost:8080/admin/'
+print ''
+raw_input('press return to continue...')
+
+print ''
 print 'Open the following URL in your browser:'
 print ''
 print auth_url
