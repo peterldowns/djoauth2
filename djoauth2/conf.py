@@ -66,8 +66,8 @@ class DJOAuth2Conf(AppConf):
   #:     authorization server when making an authorization request.
   #:
   #: If you would like to ignore the specification's recommendations, change
-  #: this value to False. Sometimes this is useful during local development and
-  #: testing, but this value should **never** be set to ``False`` in a
+  #: this value to ``False``. Sometimes this is useful during local development
+  #: and testing, but this value should **never** be set to ``False`` in a
   #: production environment.
   REQUIRE_STATE = True
 
@@ -90,7 +90,7 @@ class DJOAuth2Conf(AppConf):
   #:     authentication by the client (e.g., third-party sign-in service).
   #:
   #: If you'd like to develop your OAuth endpoints locally without having to set
-  #: up an SSL server, change this value to False. We **do not** recommend
+  #: up an SSL server, change this value to ``False``. We **do not** recommend
   #: changing this value in a production environment -- the security of your
   #: users will be greatly compromised.
   SSL_ONLY = True

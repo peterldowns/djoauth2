@@ -350,7 +350,8 @@ def make_authorization_endpoint(missing_redirect_uri,
   The template described by ``authorization_template_name`` is rendered with a
   Django ``RequestContext`` with the following variables:
 
-  * ``form``: a Django ``Form`` with no fields.
+  * ``form``: a Django ``Form`` that may hold data internal to the ``djoauth2``
+    application.
   * ``client``: The :py:class:`djoauth2.models.Client` requesting access to the
     user's scopes.
   * ``scopes``: A list of :py:class:`djoauth2.models.Scope`, one for each of

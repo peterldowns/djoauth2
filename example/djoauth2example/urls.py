@@ -2,7 +2,6 @@
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
 
-from djoauth2.authorization import make_authorization_endpoint
 
 admin.autodiscover()
 
@@ -18,15 +17,7 @@ urlpatterns = patterns('',
     # The authorization endpoint, a page where each "resource owner" will
     # be shown the details of the permissions being requested by the
     # "client".
-    (r'^oauth2/authorization/$', make_authorization_endpoint(
-        # The URI of a page to show when a "client" makes a malformed or
-        # insecure request and their registered redirect URI cannot be shown.
-        missing_redirect_uri='/oauth2/missing_redirect_uri/',
-        # This endpoint's URI.
-        authorization_endpoint_uri='/oauth2/authorization/',
-        # The name of the template to render to show the "resource owner" the
-        # details of the "client's" request.
-        authorization_template_name='oauth2server/authorization_page.html')),
+    (r'^oauth2/authorization/$', 'oauth2server.views.authorization_endpoint'),
 
     # The page to show when Client redirection URIs are misconfigured or
     # invalid. This should be a nice, simple error page.
