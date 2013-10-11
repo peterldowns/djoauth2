@@ -13,8 +13,11 @@ def addPath(rel_path, prepend=False):
       return sys.path.insert(0, path(rel_path))
     return sys.path.append(path(rel_path))
 
-addPath('lib', prepend=True)
+# Allow us to not include `djoauth2example` when importing subapps.
 addPath('djoauth2example', prepend=True)
+# Use the local version of the `djoauth2` library; very useful for manually
+# testing the full series of client-server interactions while developing.
+addPath('..', prepend=True)
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djoauth2example.settings")
