@@ -6,7 +6,7 @@ from urlparse import parse_qsl
 from urlparse import urlunparse
 
 from django.conf import settings
-from django.conf.urls.defaults import patterns
+from django.conf.urls import patterns
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.utils.importlib import import_module
