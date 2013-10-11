@@ -46,7 +46,7 @@ Make and commit your changes. Don't forget the tests!
   $ vim djoauth2/tests/...
   $ git commit -a -m "Add my new feature."
 
-Also, please follow our (very minimal) style guide:
+Also, please follow our style guide:
 
 * 2-space indents
 * All indents are spaces, not tabs.

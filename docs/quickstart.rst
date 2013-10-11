@@ -73,7 +73,7 @@ Run the tests — they should all pass!
 Now that we know that ``djoauth2`` works, it's time to set up the URL endpoints
 so that clients can make requests. Although the library handles all of the
 logic for us, we will have to set up some endpoints — to do so, we'll update
-our project's ``urls.py`` file and add a *very* simple application to hold the
+our project's ``urls.py`` file and add an application to hold the
 endpoints.  For the purposes of this demo we're going to call it
 ``oauth2server``, but you could name it anything you'd like.
 
@@ -170,8 +170,8 @@ rendered with the following context:
   value in the ``action=""`` attribute on a ``<form>`` element.
 
 
-The very simple template in our example application is included below.  Please
-note that it's very important to include the ``{{form}}`` context —
+The template in our example application is included below.  Please
+note that it is important to include the ``{{form}}`` context —
 ``djoauth2`` may use this to hold information across authorization requests.
 Currently, the ``user_action`` values must be ``"Accept"`` and ``"Decline"``.
 
@@ -236,7 +236,7 @@ The ``api/views.py`` file:
                         content_type='application/json',
                         status=200)
 
-(Any existing endpoint can be easily protected by our ``@oauth_scope``
+(Any existing endpoint can be easily protected by our :py:class:`@oauth_scope`
 decorator; just modify the signature so that it expects a
 :py:class:`djoauth2.models.AccessToken` as the first argument. For more
 information, see the :py:class:`djoauth2.decorators.oauth_scope`
