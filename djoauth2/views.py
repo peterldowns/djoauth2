@@ -327,9 +327,25 @@ def generate_access_token_from_refresh_token(request, client):
   #      identical to that of the refresh token included by the client in the
   #      request.
   #
-  # For this reason, the requested scope is required to match the existing scope
-  # or not be provided at all.
-
+  # Confusingly, http://tools.ietf.org/html/rfc6749#section-1.5 includes the
+  # following:
+  #
+  #     Refresh tokens are credentials used to obtain access tokens.  Refresh
+  #     tokens are issued to the client by the authorization server and are
+  #     used to obtain a new access token when the current access token becomes
+  #     invalid or expires, or to obtain additional access tokens with
+  #     identical or narrower scope (access tokens may have a shorter lifetime
+  #     and fewer permissions than authorized by the resource owner).
+  #
+  # This last section explicitly allows tokens with narrower scope than
+  # originally granted, which is in direct contradiction with the directive
+  # that the scope must be equivalent to that granted earlier.
+  #
+  # Because the specification seems to contradict itself, I tend towards
+  # observing the stricter directive (not allowing a subset of scope,) even
+  # though to me there seems to be no reason to disallow that feature. That
+  # said, I'm not sure why a client would ever ask for less scope than
+  # originally granted.
   scope_objects = existing_access_token.scopes.all()
   new_scope_names = request.POST.get('scope', '')
   if new_scope_names:
