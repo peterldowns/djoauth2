@@ -298,11 +298,6 @@ def generate_access_token_from_refresh_token(request, client):
     raise InvalidGrant('"{}" is not a valid "refresh_token"'.format(
       refresh_token_value))
 
-  # TODO(peter): when a request is detected from a refresh token that has
-  # already been invalidated, fire off a Signal object to allow for alerting
-  # the Client. See:
-  #   * https://docs.djangoproject.com/en/dev/topics/signals/#defining-and-sending-signals
-  #   * http://tools.ietf.org/html/rfc6749#section-10.4
   if existing_access_token.invalidated:
     refresh_token_used_after_invalidation.send(
         sender='djoauth2',
