@@ -12,7 +12,7 @@ Requirements
 DJOAuth2 has been tested and developed with the following:
 
 * Python 2.7.2
-* Django 1.4+
+* Django 1.5+
 * `Django AppConf`_ 0.6
 * `South`_ 0.8.2
 
