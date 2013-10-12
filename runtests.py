@@ -5,18 +5,24 @@ from argparse import ArgumentParser
 from os.path import abspath
 from os.path import dirname
 
+# Modify the path so that our djoauth2 app is in it.
+parent_dir = dirname(abspath(__file__))
+sys.path.insert(0, parent_dir)
+
 # Load Django-related settings; necessary for tests to run and for Django
 # imports to work.
 import local_settings
+
 # Now, imports from Django will work properly without raising errors related to
 # missing or badly-configured settings.
-
 from django.test.simple import DjangoTestSuiteRunner
+from django.conf import settings
 
 def runtests(verbosity, failfast, interactive, test_labels):
-  # Modify the path so that our djoauth2 app is in it.
-  parent_dir = dirname(abspath(__file__))
-  sys.path.insert(0, parent_dir)
+
+  if 'south' in settings.INSTALLED_APPS:
+    from south.management.commands import patch_for_test_db_setup
+    patch_for_test_db_setup()
 
   test_runner = DjangoTestSuiteRunner(
       verbosity=verbosity,

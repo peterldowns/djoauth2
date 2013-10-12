@@ -15,6 +15,7 @@ if not settings.configured and not os.environ.get('DJANGO_SETTINGS_MODULE'):
       DATABASES={
           'default': {
               'ENGINE': 'django.db.backends.sqlite3',
+              'NAME': ':memory:',
           },
         },
       INSTALLED_APPS=[
@@ -23,6 +24,7 @@ if not settings.configured and not os.environ.get('DJANGO_SETTINGS_MODULE'):
           'django.contrib.contenttypes',
           'django.contrib.sessions',
           'djoauth2',
+          'south',
         ],
       TEMPLATE_DIRS=(
           os.path.join(SITE_ROOT, 'djoauth2/tests/templates'),
