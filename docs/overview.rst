@@ -10,7 +10,7 @@ specification, which is described by the `OAuth Website`_ as
 
 The goal of this implementation is to provide a well-structured Django
 application that can be easily installed to add OAuth 2.0 provider capability to
-existing projects. The official specification is very broad, and allows for
+existing projects. The official specification is broad, and allows for
 many different ways for clients and servers to interact with each other. This
 implementation is a secure subset of these interactions in order to make it as
 easy as possible to reap the benefits of OAuth without having to struggle with

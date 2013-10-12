@@ -17,8 +17,8 @@ def oauth_scope(*scope_names):
     >>>       'super_secret_attribute' : user.super_secret_attribute
     >>>     })
 
-  ...is as simple as adding the decorator and adding an additional argument to
-  the function signature:
+  ...just add the decorator and an additional argument to the function's
+  signature:
 
     >>> @oauth_scope('foo', 'bar')
     >>> def secret_attribute_endpoint(access_token, request, *args, **kwargs):
