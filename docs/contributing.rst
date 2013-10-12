@@ -50,6 +50,9 @@ guide:
   vim djoauth2/...
   vim djoauth2/tests/...
 
+
+Schema Migrations
+~~~~~~~~~~~~~~~~~
 If your changes touched the ``models.py`` file, you must attempt to generate a
 `South migration`_ in case the schema has changed.
 
@@ -110,7 +113,7 @@ Made changes that require documentation (hint: probably)? Rebuild the docs:
 
 .. code:: bash
 
-  $ make docs
+  make docs
 
 And view them in your browser locally:
 
