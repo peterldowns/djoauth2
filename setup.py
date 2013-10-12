@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 from setuptools import setup
+import djoauth2
 
 README = open(os.path.join(os.path.dirname(__file__), 'README.rst')).read()
 REQUIREMENTS = [
@@ -11,14 +12,15 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='djoauth2',
-    version='0.2.2',
+    version=djoauth2.__VERSION__,
     packages=['djoauth2', 'djoauth2.tests'],
     include_package_data=True,
     license='MIT License',
     description='OAuth 2.0 server implementation.',
     long_description=README,
     url='https://github.com/Locu/djoauth2/',
-    download_url='https://github.com/Locu/djoauth2/tarball/0.2.2',
+    download_url='https://github.com/Locu/djoauth2/tarball/{}'.format(
+      djoauth2.__VERSION__),
     keywords=['oauth', 'oauth2', 'django'],
     install_requires=REQUIREMENTS,
     author='Locu, Inc.',

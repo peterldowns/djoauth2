@@ -15,6 +15,7 @@ def addPath(rel_path, prepend=False):
 
 # Allow us to not include `djoauth2example` when importing subapps.
 addPath('djoauth2example', prepend=True)
+
 # Use the local version of the `djoauth2` library; very useful for manually
 # testing the full series of client-server interactions while developing.
 addPath('..', prepend=True)
