@@ -14,6 +14,7 @@ DJOAuth2 has been tested and developed with the following:
 * Python 2.7.2
 * Django 1.4+
 * `Django AppConf`_ 0.6
+* `South`_ 0.8.2
 
 Installation
 ------------
@@ -22,7 +23,7 @@ Installation
 
 .. code:: bash
 
-	$ pip install djoauth2
+	pip install djoauth2
 
 Adding ``djoauth2`` to an existing application
 -----------------------------------------------
@@ -40,11 +41,15 @@ First, add ``djoauth2`` to the ``INSTALLED_APPS`` list in your project's
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
+    'south',
     # ...
     # ... your other custom apps
     # ...
     'djoauth2',
   ]
+
+If you're not already using `South`, make sure to also add ``south`` to the
+list of ``INSTALLED_APPS``.
 
 Optionally, for developing without SSL (**NOT for production code**), add the
 following setting to turn off ``djoauth2``'s SSL-enforcement:
@@ -62,13 +67,14 @@ Install the models:
 
 .. code:: bash
 
-	$ python manage.py syncdb
+	python manage.py syncdb
+  python manage.py migrate djoauth2
 
 Run the tests — they should all pass!
 
 .. code:: bash
 
-	$ python manage.py test djoauth2
+	python manage.py test djoauth2
 
 Now that we know that ``djoauth2`` works, it's time to set up the URL endpoints
 so that clients can make requests. Although the library handles all of the
@@ -246,7 +252,7 @@ With our code all set up, we're ready to start the webserver:
 
 .. code:: bash
 
-	$ python manage.py runserver 8080
+	python manage.py runserver 8080
 
 Now, log in to the admin page and create a ``Client`` and a ``Scope``. Set up
 the client so that the ``redirect_uri`` field is a valid URI under your
@@ -378,5 +384,6 @@ value, the refresh request fails, or you were never issued a refresh token,
 then you must begin again by redirecting the user to the authorization page.
   
 .. _Django AppConf: https://github.com/jezdez/django-appconf
+.. _South: http://south.aeracode.org/
 .. _a finished example: https://github.com/Locu/djoauth2/tree/master/example
 .. _check it out: https://github.com/Locu/djoauth2/blob/master/example/client_demo.py

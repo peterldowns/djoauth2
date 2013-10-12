@@ -2,24 +2,41 @@ Steps to get started:
 
 (Optional: create a new virtualenv so that you don't clutter your installs)
 
-1. Install the necessary requirements by running ``pip install -r requirements.txt``
+1. Install the necessary requirements:
 
-2. Set up database and install fixtures with ``./manage.py syncdb``.
+.. code:: bash
 
-3. Run the test suite with ``./manage.py test djoauth2``. If they don't all pass, file a bug!
+  pip install -r requirements.txt
 
-4. Start the webserver by running ``./manage.py runserver 8080``
+2. Set up database and install fixtures:
+
+.. code:: bash
+
+  ./manage.py syncdb
+  ./manage.py migrate djoauth2
+
+
+3. Run the test suite. If they don't all pass, file a bug!
+
+.. code:: bash
+
+  ./manage.py test djoauth2
+
+4. Start the webserver:
+
+.. code:: bash
+
+  ./manage.py runserver 8080
 
 5. Log in to `the admin page <http://localhost:8080/admin/>`_ with the username
    ``exampleuser`` and the password ``password``.
 
-6. Check to make sure that
-   there is a ``DJOAuth2.Client`` by the name of ``Example Client`` and  a
-   ``DJOAuth2.Scope`` object by the name of ``user_info``. These should have
-   been installed by the ``syncdb`` command.
+6. Check to make sure that there is a ``DJOAuth2.Client`` by the name of
+   ``Example Client`` and  a ``DJOAuth2.Scope`` object by the name of
+   ``user_info``.
 
-OK, at this point you're ready to start making requests as a client — check out
-the ``client_demo.py`` file for a ready-to-go example!
+If you've done all of the above, you're ready to start making requests as a
+client — check out the ``client_demo.py`` file for a ready-to-go example!
 
 .. code:: bash
 
