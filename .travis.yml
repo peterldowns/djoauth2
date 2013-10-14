@@ -7,7 +7,7 @@ env:
   # For Django 1.4.X, only support South 0.7.6 (the latest available version
   # compatible with that series.)
   - DJANGO_VERSION=1.4   SOUTH_VERSION=0.7.6
-  - DJANGO_VERSION=1.4.1 SOUTH_VERSIOn=0.7.6
+  - DJANGO_VERSION=1.4.1 SOUTH_VERSION=0.7.6
   - DJANGO_VERSION=1.4.2 SOUTH_VERSION=0.7.6
   - DJANGO_VERSION=1.4.3 SOUTH_VERSION=0.7.6
   - DJANGO_VERSION=1.4.4 SOUTH_VERSION=0.7.6
