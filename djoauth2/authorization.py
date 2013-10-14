@@ -4,7 +4,10 @@ from urlparse import urlparse
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
-from django.http.request import absolute_http_url_re
+try:
+  from django.http.request import absolute_http_url_re
+except ImportError:
+  from django.http import absolute_http_url_re
 from django.shortcuts import render
 from django.forms import Form
 from django.views.decorators.http import require_http_methods
