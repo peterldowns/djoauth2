@@ -17,3 +17,6 @@ djoauth2.egg-info
 # Example application
 example/database
 
+# Virtualenv
+dev-env
+

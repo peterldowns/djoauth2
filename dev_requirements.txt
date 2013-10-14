@@ -1,0 +1,4 @@
+Django>=1.4
+django-appconf==0.6
+# For compatibility reasons, all migrations must be generated with South==0.7.6
+South==0.7.6

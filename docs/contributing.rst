@@ -27,7 +27,18 @@ and run the following commands from a local terminal:
   git clone git@github.com:<YOUR_USER_NAME>/djoauth2.git
   cd djoauth2
 
-When this is done, you will have a local version of the DJOAuth2 repository!
+  # Optionally, create a new virtual environment for dependencies
+  # virtualenv env
+  # . env/bin/activate
+
+  # Install development dependencies inside a new virtualenv
+  make dev-env
+
+  # Activate the virtualenv so that you have access to the dependencies that
+  # were installed.
+  . dev-env/bin/activate
+
+Now you're ready to contribute!
 
 Making changes
 --------------
@@ -62,6 +73,10 @@ If your changes touched the ``models.py`` file, you must attempt to generate a
 
   # Now, test to see that they apply without an error.
   ./generate_migrations.py --test-migrations
+
+It's important that for backwards-compatibility reasons you use South version 0.7.6
+to generate migration files. This is the version included in the `dev-env` built
+by the `make dev-env` command.
 
 Testing
 ~~~~~~~

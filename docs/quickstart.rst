@@ -3,7 +3,7 @@ Quickstart Guide
 
 This guide will help you get set up to use ``djoauth2`` with an existing Django
 project. The code repository also includes `a finished example`_ for
-comparison.
+comparison; that page includes instructions for setting it up.
 
 
 Requirements
@@ -12,9 +12,11 @@ Requirements
 DJOAuth2 has been tested and developed with the following:
 
 * Python 2.7.2
-* Django 1.5+
+* Django 1.4+
 * `Django AppConf`_ 0.6
-* `South`_ 0.8.2
+
+DJOAuth2 uses `South`_ for migrations. For the Django 1.4.X series we support
+South version 0.7.6; for Django 1.5.X we support South version 0.8.2.
 
 Installation
 ------------
