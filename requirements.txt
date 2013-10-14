@@ -1,4 +1,4 @@
-Django>=1.4.3
+Django>=1.4.2
 django-appconf==0.6
-South==0.8.2
+South>=0.7.6
 

@@ -4,14 +4,12 @@ python:
   - "2.7"
 
 env:
-  - DJANGO_VERSION=1.5
-  - DJANGO_VERSION=1.5.1
-  - DJANGO_VERSION=1.5.2
-  - DJANGO_VERSION=1.5.3
-  - DJANGO_VERSION=1.5.4
+  - DJANGO_VERSION=1.4.2 SOUTH_VERSION=0.7.6
+  - DJANGO_VERSION=1.5.4 SOUTH_VERSION=0.8.2
 
 install:
   - "pip install -q Django==$DJANGO_VERSION"
+  - "pip install -q South==$SOUTH_VERSION"
   - "pip install -r requirements.txt"
 
 script: make tests
