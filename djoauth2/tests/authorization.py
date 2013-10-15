@@ -1269,9 +1269,6 @@ class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
         scope_string=self.oauth_client.scope_string,
         endpoint=self.dummy_endpoint_uri)
 
-    print ''
-    print 'DJOAUTH2_SSL_ONLY?', settings.DJOAUTH2_SSL_ONLY
-    print ''
     post_response = self.oauth_client.confirm_authorization_request(
         form_action=get_response.context['form_action'],
         custom={'user_action' : 'Accept'},
@@ -1311,9 +1308,6 @@ class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
         scope_string=self.oauth_client.scope_string,
         endpoint=self.dummy_endpoint_uri)
 
-    print ''
-    print 'DJOAUTH2_SSL_ONLY?', settings.DJOAUTH2_SSL_ONLY
-    print ''
     post_response = self.oauth_client.confirm_authorization_request(
         form_action=get_response.context['form_action'],
         custom={'user_action' : 'Denial (any value but Accept, really)'},
