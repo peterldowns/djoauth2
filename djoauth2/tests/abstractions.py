@@ -10,6 +10,7 @@ from django.test import Client as TestClient
 from django.test import TestCase
 from django.test.client import RequestFactory
 
+from djoauth2.conf import DJOAuth2Conf
 from djoauth2.models import AccessToken
 from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
@@ -22,8 +23,7 @@ def remove_empty_parameters(params):
 
 
 class DJOAuth2TestClient(TestClient):
-
-  def __init__(self, scope_names=None):
+  def __init__(self, scope_names=None, **kwargs):
     # OAuth-related settings.
     self.authorization_endpoint = '/oauth2/authorization/'
     self.token_endpoint = '/oauth2/token/'
@@ -34,7 +34,8 @@ class DJOAuth2TestClient(TestClient):
     self.access_token_value = None
     self.access_token_lifetime = None
     self.refresh_token_value = None
-    super(DJOAuth2TestClient, self).__init__()
+    kwargs.setdefault('SERVER_NAME', 'locu.com')
+    super(DJOAuth2TestClient, self).__init__(**kwargs)
 
   @property
   def ssl_only(self):
@@ -79,6 +80,24 @@ class DJOAuth2TestClient(TestClient):
     request_method = getattr(self, method.lower())
     api_request = request_method(endpoint, data, **headers)
 
+    return api_request
+
+  def confirm_authorization_request(self,
+                                    form_action,
+                                    custom=None,
+                                    method='POST',
+                                    use_ssl=None):
+    if use_ssl is None:
+      use_ssl = self.ssl_only
+
+    data = {}
+    data.update(custom or {})
+    remove_empty_parameters(data)
+    headers = {
+        'wsgi.url_scheme': 'https' if use_ssl else 'http',
+      }
+    request_method = getattr(self, method.lower())
+    api_request = request_method(form_action, data, **headers)
     return api_request
 
   def make_api_request(self,
@@ -213,6 +232,11 @@ class DJOAuth2TestCase(TestCase):
       'djoauth2_client.json',
       'djoauth2_scope.json'
     )
+
+  def setUp(self):
+    for key, value in DJOAuth2Conf._meta.defaults.iteritems():
+      setattr(settings, key, value)
+      assert getattr(settings, key) == value
 
   def initialize(self, **kwargs):
     self.user = User.objects.get(pk=1)

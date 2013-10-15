@@ -1170,6 +1170,8 @@ class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
   missing_redirect_uri = '/oauth2/missing_redirect_uri/'
   dummy_endpoint_uri = '/oauth2/authorization/'
   authorization_template_name = 'djoauth2/authorization.html'
+  missing_redirect_uri = '/oauth2/missing_redirect_uri/'
+  dummy_endpoint_uri = '/oauth2/authorization/'
 
   def test_helper_returns_function(self):
     """ The helper should return a function. """
@@ -1267,10 +1269,13 @@ class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
         scope_string=self.oauth_client.scope_string,
         endpoint=self.dummy_endpoint_uri)
 
-    post_response = self.oauth_client.post(
-        get_response.context['form_action'],
-        {'user_action' : 'Accept'})
-
+    print ''
+    print 'DJOAUTH2_SSL_ONLY?', settings.DJOAUTH2_SSL_ONLY
+    print ''
+    post_response = self.oauth_client.confirm_authorization_request(
+        form_action=get_response.context['form_action'],
+        custom={'user_action' : 'Accept'},
+        method='POST')
 
     self.assertIsInstance(post_response, HttpResponseRedirect)
     self.assertEqual(post_response.status_code, 302)
@@ -1306,9 +1311,13 @@ class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
         scope_string=self.oauth_client.scope_string,
         endpoint=self.dummy_endpoint_uri)
 
-    post_response = self.oauth_client.post(
-        get_response.context['form_action'],
-        {'user_action' : 'Denial (any value but Accept, really)'})
+    print ''
+    print 'DJOAUTH2_SSL_ONLY?', settings.DJOAUTH2_SSL_ONLY
+    print ''
+    post_response = self.oauth_client.confirm_authorization_request(
+        form_action=get_response.context['form_action'],
+        custom={'user_action' : 'Denial (any value but Accept, really)'},
+        method='POST')
 
 
     self.assertIsInstance(post_response, HttpResponseRedirect)
