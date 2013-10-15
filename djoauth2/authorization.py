@@ -248,7 +248,7 @@ class AuthorizationCodeGenerator(object):
 
     requested_scope_string = request.REQUEST.get('scope', '')
     if not requested_scope_string:
-      raise InvalidRequest('no "scope" provided')
+      raise InvalidScope('"scope" must be included')
 
     requested_scope_names = set(requested_scope_string.split(' '))
     self.valid_scope_objects = Scope.objects.filter(
@@ -278,7 +278,7 @@ class AuthorizationCodeGenerator(object):
 
     return (dict if as_dict else urlencode)(self.request.REQUEST.items())
 
-  def make_error_redirect(self):
+  def make_error_redirect(self, authorization_exception=None):
     """ Return a Django ``HttpResponseRedirect`` describing the request failure.
 
     If the :py:meth:`validate` method raises an error, the authorization
@@ -288,20 +288,30 @@ class AuthorizationCodeGenerator(object):
       >>>     AuthorizationCodeGenerator('/oauth2/missing_redirect_uri/'))
       >>> try:
       >>>   auth_code_generator.validate(request)
-      >>> except AuthorizationException:
-      >>>   return auth_code_generator.make_error_redirect()
+      >>> except AuthorizationException as authorization_exception:
+      >>>   return auth_code_generator.make_error_redirect(authorization_exception)
 
     If there is no known Client ``redirect_uri`` (because it is malformed, or
     the Client is invalid, or if the supplied ``redirect_uri`` does not match
     the regsitered value, or some other request failure) then the response will
     redirect to the ``missing_redirect_uri`` passed to the :py:meth:`__init__`
     method.
+
+    Also used to signify user denial; call this method without passing in the
+    optional ``authorization_exception`` argument to return a generic
+    :py:class:`AccessDenied` message.
+
+      >>> if not user_accepted_request:
+      >>>   return auth_code_generator.make_error_redirect()
+
     """
     if not self.redirect_uri:
       return HttpResponseRedirect(self.missing_redirect_uri)
 
-    validation_error = AccessDenied('user denied the request')
-    response_params = get_error_details(validation_error)
+    authorization_exception = (authorization_exception or
+                               AccessDenied('user denied the request'))
+    response_params = get_error_details(authorization_exception)
+
     # From http://tools.ietf.org/html/rfc6749#section-4.1.2.1 :
     #
     #     REQUIRED if the "state" parameter was present in the client
@@ -381,8 +391,8 @@ def make_authorization_endpoint(missing_redirect_uri,
 
     try:
       auth_code_generator.validate(request)
-    except AuthorizationException as e:
-      return auth_code_generator.make_error_redirect()
+    except AuthorizationException as authorization_exception:
+      return auth_code_generator.make_error_redirect(authorization_exception)
 
     if request.method == 'GET':
       return render(request, authorization_template_name, {

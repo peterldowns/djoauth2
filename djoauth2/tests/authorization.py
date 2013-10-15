@@ -414,7 +414,7 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
 
     self.oauth_client.login(username=self.user.username, password='password')
 
-    with self.assertRaises(InvalidRequest):
+    with self.assertRaises(InvalidScope):
       response = self.oauth_client.make_authorization_request(
           client_id=self.client.key,
           scope_string=self.oauth_client.scope_string,
@@ -1327,6 +1327,171 @@ class TestMakeAuthorizationEndpointHelper(DJOAuth2TestCase):
     self.assertIn('error_description', parsed_url_parameters)
 
 
+  def test_non_code_request_fails_with_relevant_error_information(self):
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'response_type': 'not_code',
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(response.get('location')).query))
+
+    self.assertIn('error', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error'],
+                     'unsupported_response_type')
+
+    self.assertIn('error_description', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error_description'],
+                     '"response_type" must be "code"')
+
+  def test_state_required_request_without_code_fails_with_relevant_error_information(self):
+    settings.DJOAUTH2_REQUIRE_STATE = True
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'state': None,
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(response.get('location')).query))
+
+    self.assertIn('error', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error'],
+                     'invalid_request')
+
+    self.assertIn('error_description', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error_description'],
+                     '"state" must be included')
+
+  def test_request_without_scope_param_fails_with_relevant_error_information(self):
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'scope': None,
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(response.get('location')).query))
+
+    self.assertIn('error', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error'],
+                     'invalid_scope')
+
+    self.assertIn('error_description', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error_description'],
+                     '"scope" must be included')
+
+  def test_request_with_empty_scope_param_fails_with_relevant_error_information(self):
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'scope': '',
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(response.get('location')).query))
+
+    self.assertIn('error', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error'],
+                     'invalid_scope')
+
+    self.assertIn('error_description', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error_description'],
+                     '"scope" must be included')
+
+  def test_request_with_invalid_scope_param_fails_with_relevant_error_information(self):
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    self.assertFalse(Scope.objects.filter(name='nonexistent_scope').exists())
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        custom={
+          'scope': 'nonexistent_scope',
+        },
+        endpoint=self.dummy_endpoint_uri)
+
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(response.get('location')).query))
+
+    self.assertIn('error', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error'],
+                     'invalid_scope')
+
+    self.assertIn('error_description', parsed_url_parameters)
+    self.assertEqual(parsed_url_parameters['error_description'],
+        'The following scopes are invalid: "nonexistent_scope"')
+
+
+  def test_errors_respond_with_correct_details(self):
+    self.initialize(scope_names=['verify'])
+
+    endpoint = make_authorization_endpoint(self.missing_redirect_uri,
+                                           self.dummy_endpoint_uri,
+                                           self.authorization_template_name)
+    add_to_url_conf(self.dummy_endpoint_uri, endpoint)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    get_response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+
 class TestAuthorizationAndTokenEndpoints(DJOAuth2TestCase):
   missing_redirect_uri = '/oauth2/missing_redirect_uri/'
   dummy_endpoint_uri = '/oauth2/authorization/'
@@ -1375,7 +1540,6 @@ class TestAuthorizationAndTokenEndpoints(DJOAuth2TestCase):
         })
 
     self.assert_token_success(response)
-
 
   def test_authorization_request_included_redirect_uri_and_no_redirect_uri_passed_fails(self):
     """ If a "redirect_uri" value is included in the initial request for
