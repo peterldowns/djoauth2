@@ -1,6 +1,10 @@
 .PHONY: clean tests coverage docs
 
-all: coverage docs
+# virtualenv for contributing
+dev-env: dev-env/bin/activate
+dev-env/bin/activate: dev_requirements.txt clean
+	test -d dev-env || virtualenv dev-env
+	. dev-env/bin/activate; pip install -Ur requirements.txt
 
 clean:
 	- find . -type f -name "*.pyc" -delete
@@ -8,7 +12,7 @@ clean:
 tests: clean
 	./runtests.py
 
-coverage: clean dev-env
+coverage: clean
 	coverage run ./runtests.py
 	coverage html
 	coverage report
@@ -18,11 +22,4 @@ docs: clean
 
 dist: clean
 	python setup.py sdist
-
-# virtualenv for contributing
-dev-env: dev-env/bin/activate clean
-dev-env/bin/activate: dev_requirements.txt clean
-	test -d venv || virtualenv dev-env
-	. dev-env/bin/activate; pip install -Ur requirements.txt
-	touch dev-env/bin/activate
 
