@@ -7,6 +7,7 @@ include = djoauth2/*
 omit =
   djoauth2/tests/*
   djoauth2/admin*
+  djoauth2/migrations/*
 
 [html]
 directory = docs/coverage
