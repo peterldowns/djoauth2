@@ -27,10 +27,6 @@ and run the following commands from a local terminal:
   git clone git@github.com:<YOUR_USER_NAME>/djoauth2.git
   cd djoauth2
 
-  # Optionally, create a new virtual environment for dependencies
-  # virtualenv env
-  # . env/bin/activate
-
   # Install development dependencies inside a new virtualenv
   make dev-env
 
@@ -42,7 +38,7 @@ Now you're ready to contribute!
 
 Making changes
 --------------
-Now it's time to hack away :) First, check out a new branch locally:
+First, check out a new branch locally:
 
 .. code:: bash
 
@@ -83,7 +79,7 @@ Testing
 DJOAuth2 is a standalone Django application, which can be hard to test. To
 obviate a need for installing and re-installing inside of a test project, we
 provide a script (``runtests.py``) that sets up a minimal Django environment
-for testing. To use it, enter your shell and run:
+To use it, enter your shell and run:
 
 .. code:: bash
 

@@ -4,8 +4,8 @@ import json
 from django.http import HttpResponse
 
 from djoauth2.conf import settings
-from djoauth2.exceptions import DJOAuthException
-from djoauth2.exceptions import get_error_details
+from djoauth2.errors import DJOAuthError
+from djoauth2.errors import get_error_details
 from djoauth2.models import AccessToken
 from djoauth2.models import Scope
 
@@ -117,11 +117,11 @@ class AccessTokenAuthenticator(object):
 
       return (access_token, None)
 
-    except AuthenticationException as validation_exception:
-      return (None, (validation_exception, expose_errors))
+    except AuthenticationError as validation_error:
+      return (None, (validation_error, expose_errors))
 
 
-  def make_error_response(self, validation_exception, expose_errors):
+  def make_error_response(self, validation_error, expose_errors):
     """ Return an appropriate ``HttpResponse`` on authentication failure.
 
     In case of an error, the specification only details the inclusion of the
@@ -130,8 +130,8 @@ class AccessTokenAuthenticator(object):
     of the response. For more information, read the specification:
     http://tools.ietf.org/html/rfc6750#section-3.1 .
 
-    :param validation_exception: A
-      :py:class:`djoauth2.access_token.AuthenticationException` raised by the
+    :param validation_error: A
+      :py:class:`djoauth2.access_token.AuthenticationError` raised by the
       :py:meth:`validate` method.
     :param expose_errors: A boolean describing whether or not to expose error
       information in the error response, as described by the section of the
@@ -147,13 +147,13 @@ class AccessTokenAuthenticator(object):
       return response
 
     status_code = 401
-    error_details = get_error_details(validation_exception)
+    error_details = get_error_details(validation_error)
 
-    if isinstance(validation_exception, InvalidRequest):
+    if isinstance(validation_error, InvalidRequest):
       status_code = 400
-    elif isinstance(validation_exception, InvalidToken):
+    elif isinstance(validation_error, InvalidToken):
       status_code = 401
-    elif isinstance(validation_exception, InsufficientScope):
+    elif isinstance(validation_error, InsufficientScope):
       error_details['scope'] = ' '.join(self.required_scope_names)
       status_code = 403
 
@@ -172,8 +172,8 @@ class AccessTokenAuthenticator(object):
     return response
 
 
-class AuthenticationException(DJOAuthException):
-  """ Base class for exceptions related to API request authentication.
+class AuthenticationError(DJOAuthError):
+  """ Base class for errors related to API request authentication.
 
   For more details, refer to the Bearer Token specification:
 
@@ -183,7 +183,7 @@ class AuthenticationException(DJOAuthException):
   pass
 
 
-class InvalidRequest(AuthenticationException):
+class InvalidRequest(AuthenticationError):
   """ From http://tools.ietf.org/html/rfc6750#section-3.1 :
 
   The request is missing a required parameter, includes an unsupported
@@ -194,7 +194,7 @@ class InvalidRequest(AuthenticationException):
   error_name = 'invalid_request'
 
 
-class InvalidToken(AuthenticationException):
+class InvalidToken(AuthenticationError):
   """ From http://tools.ietf.org/html/rfc6750#section-3.1 :
 
   The access token provided is expired, revoked, malformed, or invalid for
@@ -205,7 +205,7 @@ class InvalidToken(AuthenticationException):
   error_name = 'invalid_token'
 
 
-class InsufficientScope(AuthenticationException):
+class InsufficientScope(AuthenticationError):
   """ From http://tools.ietf.org/html/rfc6750#section-3.1 :
 
   The request requires higher privileges than provided by the access token.

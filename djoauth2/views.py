@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from djoauth2.conf import settings
-from djoauth2.exceptions import DJOAuthException
+from djoauth2.errors import DJOAuthError
 from djoauth2.models import AccessToken
 from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
@@ -192,13 +192,13 @@ def access_token_endpoint(request):
     response['Pragma'] = 'no-cache'
     return response
 
-  except AccessTokenException as generation_exception:
+  except AccessTokenError as generation_error:
     # Error response documentation:
     # http://tools.ietf.org/html/rfc6749#section-5.2
-    error_name = getattr(generation_exception,
+    error_name = getattr(generation_error,
                          'error_name',
                          'invalid_request')
-    error_description = str(generation_exception) or 'Invalid Request.'
+    error_description = str(generation_error) or 'Invalid Request.'
     response_data = {
         'error':  error_name,
         'error_description': error_description,
@@ -206,7 +206,7 @@ def access_token_endpoint(request):
 
     response = HttpResponse(content=json.dumps(response_data),
                             content_type='application/json')
-    if isinstance(generation_exception, InvalidClient):
+    if isinstance(generation_error, InvalidClient):
       response.status_code = 401
     else:
       response.status_code = 400
@@ -383,14 +383,14 @@ def generate_access_token_from_refresh_token(request, client):
   return new_access_token
 
 
-class AccessTokenException(DJOAuthException):
-  """ Base class for all AccessToken-related exceptions.
+class AccessTokenError(DJOAuthError):
+  """ Base class for all AccessToken-related errors.
 
   Read the specification: http://tools.ietf.org/html/rfc6749#section-5.2 .
   """
 
 
-class InvalidRequest(AccessTokenException):
+class InvalidRequest(AccessTokenError):
   """ From http://tools.ietf.org/html/rfc6749#section-5.2 :
 
   The request is missing a required parameter, includes an unsupported
@@ -401,7 +401,7 @@ class InvalidRequest(AccessTokenException):
   error_name = 'invalid_request'
 
 
-class InvalidClient(AccessTokenException):
+class InvalidClient(AccessTokenError):
   """ From http://tools.ietf.org/html/rfc6749#section-5.2 :
 
   Client authentication failed (e.g., unknown client, no client authentication
@@ -416,7 +416,7 @@ class InvalidClient(AccessTokenException):
   error_name = 'invalid_client'
 
 
-class InvalidGrant(AccessTokenException):
+class InvalidGrant(AccessTokenError):
   """ From http://tools.ietf.org/html/rfc6749#section-5.2 :
 
   The provided authorization grant (e.g., authorization code, resource owner
@@ -427,7 +427,7 @@ class InvalidGrant(AccessTokenException):
   error_name = 'invalid_grant'
 
 
-class UnauthorizedClient(AccessTokenException):
+class UnauthorizedClient(AccessTokenError):
   """ From http://tools.ietf.org/html/rfc6749#section-5.2 :
 
   The authenticated client is not authorized to use this authorization grant
@@ -436,7 +436,7 @@ class UnauthorizedClient(AccessTokenException):
   error_name = 'unauthorized_client'
 
 
-class UnsupportedGrantType(AccessTokenException):
+class UnsupportedGrantType(AccessTokenError):
   """ From http://tools.ietf.org/html/rfc6749#section-5.2 :
 
   The authorization grant type is not supported by the authorization server.
@@ -444,7 +444,7 @@ class UnsupportedGrantType(AccessTokenException):
   error_name = 'unsupported_grant_type'
 
 
-class InvalidScope(AccessTokenException):
+class InvalidScope(AccessTokenError):
   """ From http://tools.ietf.org/html/rfc6749#section-5.2 :
 
   The requested scope is invalid, unknown, malformed, or exceeds the scope
