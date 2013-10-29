@@ -13,8 +13,8 @@ from django.forms import Form
 from django.views.decorators.http import require_http_methods
 
 from djoauth2.conf import settings
-from djoauth2.exceptions import DJOAuthException
-from djoauth2.exceptions import get_error_details
+from djoauth2.errors import DJOAuthError
+from djoauth2.errors import get_error_details
 from djoauth2.helpers import update_parameters
 from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
@@ -32,7 +32,7 @@ class AuthorizationCodeGenerator(object):
     >>>       '/oauth2/missing_redirect_uri/')
     >>>   try:
     >>>     auth_code_generator.validate(request)
-    >>>   except AuthorizationException as e:
+    >>>   except AuthorizationError as e:
     >>>     return auth_code_generator.make_error_redirect()
     >>>
     >>>   if request.method == 'GET':
@@ -112,7 +112,7 @@ class AuthorizationCodeGenerator(object):
     <http://tools.ietf.org/html/rfc6749#section-4.1 .>`_ for descriptions of
     each type of error.
 
-    :raises: a :py:class:`AuthorizationException` if the request is invalid.
+    :raises: a :py:class:`AuthorizationError` if the request is invalid.
     """
 
     # From http://tools.ietf.org/html/rfc6749#section-3.1 :
@@ -278,7 +278,7 @@ class AuthorizationCodeGenerator(object):
 
     return (dict if as_dict else urlencode)(self.request.REQUEST.items())
 
-  def make_error_redirect(self, authorization_exception=None):
+  def make_error_redirect(self, authorization_error=None):
     """ Return a Django ``HttpResponseRedirect`` describing the request failure.
 
     If the :py:meth:`validate` method raises an error, the authorization
@@ -288,8 +288,8 @@ class AuthorizationCodeGenerator(object):
       >>>     AuthorizationCodeGenerator('/oauth2/missing_redirect_uri/'))
       >>> try:
       >>>   auth_code_generator.validate(request)
-      >>> except AuthorizationException as authorization_exception:
-      >>>   return auth_code_generator.make_error_redirect(authorization_exception)
+      >>> except AuthorizationError as authorization_error:
+      >>>   return auth_code_generator.make_error_redirect(authorization_error)
 
     If there is no known Client ``redirect_uri`` (because it is malformed, or
     the Client is invalid, or if the supplied ``redirect_uri`` does not match
@@ -298,7 +298,7 @@ class AuthorizationCodeGenerator(object):
     method.
 
     Also used to signify user denial; call this method without passing in the
-    optional ``authorization_exception`` argument to return a generic
+    optional ``authorization_error`` argument to return a generic
     :py:class:`AccessDenied` message.
 
       >>> if not user_accepted_request:
@@ -308,9 +308,9 @@ class AuthorizationCodeGenerator(object):
     if not self.redirect_uri:
       return HttpResponseRedirect(self.missing_redirect_uri)
 
-    authorization_exception = (authorization_exception or
-                               AccessDenied('user denied the request'))
-    response_params = get_error_details(authorization_exception)
+    authorization_error = (authorization_error or
+                           AccessDenied('user denied the request'))
+    response_params = get_error_details(authorization_error)
 
     # From http://tools.ietf.org/html/rfc6749#section-4.1.2.1 :
     #
@@ -391,8 +391,8 @@ def make_authorization_endpoint(missing_redirect_uri,
 
     try:
       auth_code_generator.validate(request)
-    except AuthorizationException as authorization_exception:
-      return auth_code_generator.make_error_redirect(authorization_exception)
+    except AuthorizationError as authorization_error:
+      return auth_code_generator.make_error_redirect(authorization_error)
 
     if request.method == 'GET':
       return render(request, authorization_template_name, {
@@ -414,21 +414,21 @@ def make_authorization_endpoint(missing_redirect_uri,
   return authorization_endpoint
 
 
-class AuthorizationException(DJOAuthException):
-  """ Base class for authorization-related exceptions.
+class AuthorizationError(DJOAuthError):
+  """ Base class for authorization-related errors.
 
   Read the specification: http://tools.ietf.org/html/rfc6749#section-4.1.2.1 .
   """
 
 
-class UnauthenticatedUser(AuthorizationException):
+class UnauthenticatedUser(AuthorizationError):
   """ Raised when the user is not authenticated during authorization.
 
   Not part of the OAuth specification.
   """
 
 
-class InvalidRequest(AuthorizationException):
+class InvalidRequest(AuthorizationError):
   """ The request is missing a required parameter, includes an invalid
   parameter value, includes a parameter more than once, or is otherwise
   malformed.
@@ -436,31 +436,31 @@ class InvalidRequest(AuthorizationException):
   error_name = 'invalid_request'
 
 
-class UnauthorizedClient(AuthorizationException):
+class UnauthorizedClient(AuthorizationError):
   """ The client is not authorized to request an authorization code using this
   method.
   """
   error_name = 'unauthorized_client'
 
 
-class AccessDenied(AuthorizationException):
+class AccessDenied(AuthorizationError):
   """ The resource owner or authorization server denied the request. """
   error_name = 'access_denied'
 
 
-class UnsupportedResponseType(AuthorizationException):
+class UnsupportedResponseType(AuthorizationError):
   """ The authorization server does not support obtaining an authorization code
   using this method.
   """
   error_name = 'unsupported_response_type'
 
 
-class InvalidScope(AuthorizationException):
+class InvalidScope(AuthorizationError):
   """ The requested scope is invalid, unknown, or malformed. """
   error_name = 'invalid_scope'
 
 
-class ServerError(AuthorizationException):
+class ServerError(AuthorizationError):
   """  The authorization server encountered an unexpected condition that
   prevented it from fulfilling the request. (This error code is needed because
   a 500 Internal Server Error HTTP status code cannot be returned to the client
@@ -469,7 +469,7 @@ class ServerError(AuthorizationException):
   error_name = 'server_error'
 
 
-class TemporarilyUnavailable(AuthorizationException):
+class TemporarilyUnavailable(AuthorizationError):
   """ The authorization server is currently unable to handle the request due to
   a temporary overloading or maintenance of the server. (This error code is
   needed because a 503 Service Unavailable HTTP status code cannot be returned

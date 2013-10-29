@@ -12,7 +12,7 @@ from django.http import HttpResponseRedirect
 from django.utils.importlib import import_module
 
 from djoauth2.authorization import AuthorizationCodeGenerator
-from djoauth2.authorization import AuthorizationException
+from djoauth2.authorization import AuthorizationError
 from djoauth2.authorization import make_authorization_endpoint
 from djoauth2.authorization import InvalidRequest
 from djoauth2.authorization import InvalidScope
