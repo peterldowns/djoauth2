@@ -58,8 +58,7 @@ following setting to turn off ``djoauth2``'s SSL-enforcement:
 
 .. code:: python
 
- 	if DEBUG:
-	  DJOAUTH2_SSL_ONLY = False
+	DJOAUTH2_SSL_ONLY = False
 
 **Do not** set this to ``False`` in production code: SSL is mandated by the
 specification.  This value is only designed to make it easier to *develop* with
@@ -69,7 +68,7 @@ Install the models:
 
 .. code:: bash
 
-	python manage.py syncdb
+  python manage.py syncdb
   python manage.py migrate djoauth2
 
 Run the tests — they should all pass!
@@ -250,10 +249,12 @@ decorator; just modify the signature so that it expects a
 information, see the :py:class:`djoauth2.decorators.oauth_scope`
 documentation.)
 
-With our code all set up, we're ready to start the webserver:
+With our code all set up, we're ready to set up the DB and start the webserver:
 
 .. code:: bash
 
+  python manage.py syncdb
+  python manage.py migrate
 	python manage.py runserver 8080
 
 Now, log in to the admin page and create a ``Client`` and a ``Scope``. Set up
