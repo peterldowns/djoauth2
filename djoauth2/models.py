@@ -11,6 +11,7 @@ from djoauth2.helpers import make_authorization_code
 from djoauth2.helpers import make_bearer_token
 from djoauth2.helpers import make_client_key
 from djoauth2.helpers import make_client_secret
+from oauth2lib import models as oldmodels
 
 
 class Client(models.Model):
@@ -38,6 +39,23 @@ class Client(models.Model):
   def __str__(self):
     return str(self.name)
 
+  def save(self, *args, **kwargs):
+    if kwargs.pop('propagate_changes', False):
+      old_client, _ = oldmodels.Client.objects.get_or_create(key=self.key)
+      old_client.secret = self.secret
+      old_client.redirect_uri = self.redirect_uri
+      old_client.description = self.description
+      old_client.name = self.name
+      old_client.user = self.user
+      old_client.save()
+    return super(Client, self).save(*args, **kwargs)
+
+  def delete(self, *args, **kwargs):
+    if kwargs.pop('propagate_changes', False):
+      for old_client in oldmodels.Client.objects.filter(key=self.key):
+        old_client.delete()
+    return super(Client, self).save(*args, **kwargs)
+
 
 class Scope(models.Model):
   name = models.CharField(unique=True, max_length=256, db_index=True)
@@ -48,6 +66,19 @@ class Scope(models.Model):
 
   def __str__(self):
     return str(self.name)
+
+  def save(self, *args, **kwargs):
+    if kwargs.pop('propagate_changes', False):
+      old_scope, _ = oldmodels.Scope.objects.get_or_create(name=self.name)
+      old_scope.description = self.description
+      old_scope.save()
+    return super(Scope, self).save(*args, **kwargs)
+
+  def delete(self, *args, **kwargs):
+    if kwargs.pop('propagate_changes', False):
+      for old_scope in oldmodels.Scope.objects.filter(name=self.name):
+        old_scope.delete()
+    return super(Scope, self).save(*args, **kwargs)
 
 
 class AuthorizationCode(models.Model):
@@ -87,6 +118,42 @@ class AuthorizationCode(models.Model):
 
   def __str__(self):
     return str(self.value)
+
+  def save(self, *args, **kwargs):
+    if kwargs.pop('propagate_changes', False):
+      if self.invalidated:
+        for old_code in oldmodels.AuthorizationCode.objects.filter(
+            value=self.value):
+          old_code.delete()
+      else:
+        old_code, _ = oldmodels.AuthorizationCode.objects.get_or_create(
+            value=self.value)
+        # Create the old version of the client if it does not exist.
+        self.client.save()
+        old_code.client = oldmodels.Client.objects.get(key=self.client.key)
+        old_code.user = self.user
+        old_code.value = self.value
+        old_code.date_created = self.date_created
+        old_code.expires_in = self.lifetime
+        old_code.redirect_uri = self.redirect_uri
+
+        old_scopes = []
+        for scope in self.scopes:
+          old_scope, _ = oldmodels.Scope.objects.get_or_create(name=scope.name)
+          old_scope.description = new_scope.description
+          old_scope.save()
+          old_scopes.append(old_scope)
+        old_code.scopes = old_scopes
+
+        old_code.save()
+    return super(AuthorizationCode, self).save(*args, **kwargs)
+
+  def delete(self, *args, **kwargs):
+    if kwargs.pop('propagate_changes', False):
+      for old_code in oldmodels.AuthorizationCode.objects.filter(
+          value=self.value):
+        old_code.delete()
+    return super(AuthorizationCode, self).save(*args, **kwargs)
 
 
 class AccessToken(models.Model):
@@ -136,4 +203,38 @@ class AccessToken(models.Model):
 
   def __str__(self):
     return str(self.value)
+
+  def save(self, *args, **kwargs):
+    if kwargs.pop('propagate_changes', False):
+      if self.invalidated:
+        oldmodels.AccessToken.objects.filter(value=self.value).delete()
+      else:
+        old_token, _ = oldmodels.AccessToken.objects.get_or_create(
+            value=self.value)
+        old_token.user = self.user
+        # Create the old version of the client if it does not exist.
+        self.client.save()
+        old_token.client = oldmodels.Client.objects.get(key=self.client.key)
+        old_token.date_created = self.date_created
+        old_token.refresh_token = self.refresh_token
+        old_token.expires_in = self.lifetime
+        old_token.scopes
+
+        old_scopes = []
+        for scope in self.scopes:
+          # Create the old version of the scope if it does not exist.
+          scope.save()
+          old_scope = oldmodels.Scope.objects.get(name=scope.name)
+          old_scopes.append(old_scope)
+        old_token.scopes = old_scopes
+        old_token.refreshable = self.refreshable
+
+        old_token.save()
+    return super(AccessToken, self).save(*args, **kwargs)
+
+  def delete(self, *args, **kwargs):
+    if kwargs.pop('propagate_changes', False):
+      for old_token in oldmodels.AccessToken.objects.filter(value=self.value):
+        old_token.delete()
+    return super(AccessToken, self).save(*args, **kwargs)
 
