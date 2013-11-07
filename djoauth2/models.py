@@ -141,14 +141,14 @@ class AuthorizationCode(models.Model):
         old_code.expires_in = self.lifetime
         old_code.redirect_uri = self.redirect_uri
 
+        old_code.save() # Create PK to allow access to M2M fields.
         old_scopes = []
-        for scope in self.scopes:
+        for scope in self.scopes.all():
           old_scope, _ = oldmodels.Scope.objects.get_or_create(name=scope.name)
           old_scope.description = new_scope.description
           old_scope.save()
           old_scopes.append(old_scope)
         old_code.scopes = old_scopes
-
         old_code.save()
     return super(AuthorizationCode, self).save(*args, **kwargs)
 
@@ -224,16 +224,17 @@ class AccessToken(models.Model):
         old_token.date_created = self.date_created
         old_token.refresh_token = self.refresh_token
         old_token.expires_in = self.lifetime
-        old_token.scopes
+        old_token.refreshable = self.refreshable
 
+        old_token.save() # Create PK to allow access to M2M fields.
         old_scopes = []
-        for scope in self.scopes:
-          # Create the old version of the scope if it does not exist.
-          scope.save()
-          old_scope = oldmodels.Scope.objects.get(name=scope.name)
+        for scope in self.scopes.all():
+          old_scope, _ = oldmodels.Scope.objects.get_or_create(name=scope.name)
+          old_scope.description = new_scope.description
+          old_scope.save()
           old_scopes.append(old_scope)
         old_token.scopes = old_scopes
-        old_token.refreshable = self.refreshable
+        old_token.save()
 
         old_token.save()
     return super(AccessToken, self).save(*args, **kwargs)
