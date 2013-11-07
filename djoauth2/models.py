@@ -41,7 +41,10 @@ class Client(models.Model):
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
       from oauth2lib import models as oldmodels
-      old_client, _ = oldmodels.Client.objects.get_or_create(key=self.key)
+      try:
+        old_client = oldmodels.Client.objects.get(key=self.key)
+      except oldmodels.Client.DoesNotExist:
+        old_client = oldmodels.Client(key=self.key)
       old_client.secret = self.secret
       old_client.redirect_uri = self.redirect_uri
       old_client.description = self.description
@@ -71,7 +74,10 @@ class Scope(models.Model):
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
       from oauth2lib import models as oldmodels
-      old_scope, _ = oldmodels.Scope.objects.get_or_create(name=self.name)
+      try:
+        old_scope = oldmodels.Scope.objects.get(name=self.name)
+      except oldmodels.Scope.DoesNotExist:
+        old_scope = oldmodels.Scope(name=self.name)
       old_scope.description = self.description
       old_scope.save()
     return super(Scope, self).save(*args, **kwargs)
@@ -130,8 +136,10 @@ class AuthorizationCode(models.Model):
             value=self.value):
           old_code.delete()
       else:
-        old_code, _ = oldmodels.AuthorizationCode.objects.get_or_create(
-            value=self.value)
+        try:
+          old_code = oldmodels.AuthorizationCode.objects.get(value=self.value)
+        except oldmodels.AuthorizationCode.DoesNotExist:
+          old_code = oldmodels.AuthorizationCode(value=self.value)
         # Create the old version of the client if it does not exist.
         self.client.save()
         old_code.client = oldmodels.Client.objects.get(key=self.client.key)
@@ -144,7 +152,10 @@ class AuthorizationCode(models.Model):
         old_code.save() # Create PK to allow access to M2M fields.
         old_scopes = []
         for scope in self.scopes.all():
-          old_scope, _ = oldmodels.Scope.objects.get_or_create(name=scope.name)
+          try:
+            old_scope = oldmodels.Scope.objects.get(name=scope.name)
+          except oldmodels.Scope.DoesNotExist:
+            old_scope = oldmodels.Scope(name=scope.name)
           old_scope.description = new_scope.description
           old_scope.save()
           old_scopes.append(old_scope)
@@ -215,8 +226,10 @@ class AccessToken(models.Model):
       if self.invalidated:
         oldmodels.AccessToken.objects.filter(value=self.value).delete()
       else:
-        old_token, _ = oldmodels.AccessToken.objects.get_or_create(
-            value=self.value)
+        try:
+          old_token = oldmodels.AccessToken.objects.get(value=self.value)
+        except oldmodels.AccessToken.DoesNotExist:
+          old_token = oldmodels.AccessToken(value=self.value)
         old_token.user = self.user
         # Create the old version of the client if it does not exist.
         self.client.save()
@@ -229,7 +242,10 @@ class AccessToken(models.Model):
         old_token.save() # Create PK to allow access to M2M fields.
         old_scopes = []
         for scope in self.scopes.all():
-          old_scope, _ = oldmodels.Scope.objects.get_or_create(name=scope.name)
+          try:
+            old_scope = oldmodels.Scope.objects.get(name=scope.name)
+          except oldmodels.Scope.DoesNotExist:
+            old_scope = oldmodels.Scope(name=scope.name)
           old_scope.description = new_scope.description
           old_scope.save()
           old_scopes.append(old_scope)
