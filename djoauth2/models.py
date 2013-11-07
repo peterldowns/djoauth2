@@ -11,7 +11,6 @@ from djoauth2.helpers import make_authorization_code
 from djoauth2.helpers import make_bearer_token
 from djoauth2.helpers import make_client_key
 from djoauth2.helpers import make_client_secret
-from oauth2lib import models as oldmodels
 
 
 class Client(models.Model):
@@ -41,6 +40,7 @@ class Client(models.Model):
 
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       old_client, _ = oldmodels.Client.objects.get_or_create(key=self.key)
       old_client.secret = self.secret
       old_client.redirect_uri = self.redirect_uri
@@ -52,6 +52,7 @@ class Client(models.Model):
 
   def delete(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       for old_client in oldmodels.Client.objects.filter(key=self.key):
         old_client.delete()
     return super(Client, self).save(*args, **kwargs)
@@ -69,6 +70,7 @@ class Scope(models.Model):
 
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       old_scope, _ = oldmodels.Scope.objects.get_or_create(name=self.name)
       old_scope.description = self.description
       old_scope.save()
@@ -76,6 +78,7 @@ class Scope(models.Model):
 
   def delete(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       for old_scope in oldmodels.Scope.objects.filter(name=self.name):
         old_scope.delete()
     return super(Scope, self).save(*args, **kwargs)
@@ -121,6 +124,7 @@ class AuthorizationCode(models.Model):
 
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       if self.invalidated:
         for old_code in oldmodels.AuthorizationCode.objects.filter(
             value=self.value):
@@ -150,6 +154,7 @@ class AuthorizationCode(models.Model):
 
   def delete(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       for old_code in oldmodels.AuthorizationCode.objects.filter(
           value=self.value):
         old_code.delete()
@@ -206,6 +211,7 @@ class AccessToken(models.Model):
 
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       if self.invalidated:
         oldmodels.AccessToken.objects.filter(value=self.value).delete()
       else:
@@ -234,6 +240,7 @@ class AccessToken(models.Model):
 
   def delete(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       for old_token in oldmodels.AccessToken.objects.filter(value=self.value):
         old_token.delete()
     return super(AccessToken, self).save(*args, **kwargs)
