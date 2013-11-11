@@ -269,7 +269,7 @@ def generate_access_token_from_authorization_code(request, client):
       client=authorization_code.client)
   new_access_token.scopes = authorization_code.scopes.all()
   new_access_token.authorization_code = authorization_code
-  new_access_token.save()
+  new_access_token.save(propagate_changes=True)
 
   # Mark this token as expired so that any future requests with the same token
   # can be handled with the correct behavior. From
@@ -376,7 +376,7 @@ def generate_access_token_from_refresh_token(request, client):
       client=existing_access_token.client)
   new_access_token.authorization_code = existing_access_token.authorization_code
   new_access_token.scopes = scope_objects
-  new_access_token.save()
+  new_access_token.save(propagate_changes=True)
 
   existing_access_token.invalidate()
 

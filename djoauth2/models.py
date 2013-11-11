@@ -54,7 +54,7 @@ class Client(models.Model):
     if kwargs.pop('propagate_changes', False):
       for old_client in oldmodels.Client.objects.filter(key=self.key):
         old_client.delete()
-    return super(Client, self).save(*args, **kwargs)
+    return super(Client, self).delete(*args, **kwargs)
 
 
 class Scope(models.Model):
@@ -78,7 +78,7 @@ class Scope(models.Model):
     if kwargs.pop('propagate_changes', False):
       for old_scope in oldmodels.Scope.objects.filter(name=self.name):
         old_scope.delete()
-    return super(Scope, self).save(*args, **kwargs)
+    return super(Scope, self).delete(*args, **kwargs)
 
 
 class AuthorizationCode(models.Model):
@@ -153,7 +153,7 @@ class AuthorizationCode(models.Model):
       for old_code in oldmodels.AuthorizationCode.objects.filter(
           value=self.value):
         old_code.delete()
-    return super(AuthorizationCode, self).save(*args, **kwargs)
+    return super(AuthorizationCode, self).delete(*args, **kwargs)
 
 
 class AccessToken(models.Model):
@@ -236,5 +236,5 @@ class AccessToken(models.Model):
     if kwargs.pop('propagate_changes', False):
       for old_token in oldmodels.AccessToken.objects.filter(value=self.value):
         old_token.delete()
-    return super(AccessToken, self).save(*args, **kwargs)
+    return super(AccessToken, self).delete(*args, **kwargs)
 
