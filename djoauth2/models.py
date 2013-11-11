@@ -115,7 +115,7 @@ class AuthorizationCode(models.Model):
 
   def invalidate(self):
     self.invalidated = True
-    self.save()
+    self.save(propagate_changes=True)
     return self.invalidated
 
   def is_expired(self):
@@ -141,7 +141,7 @@ class AuthorizationCode(models.Model):
         except oldmodels.AuthorizationCode.DoesNotExist:
           old_code = oldmodels.AuthorizationCode(value=self.value)
         # Create the old version of the client if it does not exist.
-        self.client.save()
+        self.client.save(propagate_changes=True)
         old_code.client = oldmodels.Client.objects.get(key=self.client.key)
         old_code.user = self.user
         old_code.value = self.value
@@ -156,7 +156,7 @@ class AuthorizationCode(models.Model):
             old_scope = oldmodels.Scope.objects.get(name=scope.name)
           except oldmodels.Scope.DoesNotExist:
             old_scope = oldmodels.Scope(name=scope.name)
-          old_scope.description = new_scope.description
+          old_scope.description = scope.description
           old_scope.save()
           old_scopes.append(old_scope)
         old_code.scopes = old_scopes
@@ -207,7 +207,7 @@ class AccessToken(models.Model):
 
   def invalidate(self):
     self.invalidated = True
-    self.save()
+    self.save(propagate_changes=True)
     return self.invalidated
 
   def is_expired(self):
@@ -232,7 +232,7 @@ class AccessToken(models.Model):
           old_token = oldmodels.AccessToken(value=self.value)
         old_token.user = self.user
         # Create the old version of the client if it does not exist.
-        self.client.save()
+        self.client.save(propagate_changes=True)
         old_token.client = oldmodels.Client.objects.get(key=self.client.key)
         old_token.date_created = self.date_created
         old_token.refresh_token = self.refresh_token
@@ -246,13 +246,12 @@ class AccessToken(models.Model):
             old_scope = oldmodels.Scope.objects.get(name=scope.name)
           except oldmodels.Scope.DoesNotExist:
             old_scope = oldmodels.Scope(name=scope.name)
-          old_scope.description = new_scope.description
+          old_scope.description = scope.description
           old_scope.save()
           old_scopes.append(old_scope)
         old_token.scopes = old_scopes
         old_token.save()
 
-        old_token.save()
     return super(AccessToken, self).save(*args, **kwargs)
 
   def delete(self, *args, **kwargs):
