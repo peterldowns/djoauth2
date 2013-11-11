@@ -11,7 +11,6 @@ from djoauth2.helpers import make_authorization_code
 from djoauth2.helpers import make_bearer_token
 from djoauth2.helpers import make_client_key
 from djoauth2.helpers import make_client_secret
-from oauth2lib import models as oldmodels
 
 
 class Client(models.Model):
@@ -41,7 +40,11 @@ class Client(models.Model):
 
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
-      old_client, _ = oldmodels.Client.objects.get_or_create(key=self.key)
+      from oauth2lib import models as oldmodels
+      try:
+        old_client = oldmodels.Client.objects.get(key=self.key)
+      except oldmodels.Client.DoesNotExist:
+        old_client = oldmodels.Client(key=self.key)
       old_client.secret = self.secret
       old_client.redirect_uri = self.redirect_uri
       old_client.description = self.description
@@ -52,6 +55,7 @@ class Client(models.Model):
 
   def delete(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       for old_client in oldmodels.Client.objects.filter(key=self.key):
         old_client.delete()
     return super(Client, self).delete(*args, **kwargs)
@@ -69,13 +73,18 @@ class Scope(models.Model):
 
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
-      old_scope, _ = oldmodels.Scope.objects.get_or_create(name=self.name)
+      from oauth2lib import models as oldmodels
+      try:
+        old_scope = oldmodels.Scope.objects.get(name=self.name)
+      except oldmodels.Scope.DoesNotExist:
+        old_scope = oldmodels.Scope(name=self.name)
       old_scope.description = self.description
       old_scope.save()
     return super(Scope, self).save(*args, **kwargs)
 
   def delete(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       for old_scope in oldmodels.Scope.objects.filter(name=self.name):
         old_scope.delete()
     return super(Scope, self).delete(*args, **kwargs)
@@ -121,13 +130,16 @@ class AuthorizationCode(models.Model):
 
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       if self.invalidated:
         for old_code in oldmodels.AuthorizationCode.objects.filter(
             value=self.value):
           old_code.delete()
       else:
-        old_code, _ = oldmodels.AuthorizationCode.objects.get_or_create(
-            value=self.value)
+        try:
+          old_code = oldmodels.AuthorizationCode.objects.get(value=self.value)
+        except oldmodels.AuthorizationCode.DoesNotExist:
+          old_code = oldmodels.AuthorizationCode(value=self.value)
         # Create the old version of the client if it does not exist.
         self.client.save()
         old_code.client = oldmodels.Client.objects.get(key=self.client.key)
@@ -137,19 +149,23 @@ class AuthorizationCode(models.Model):
         old_code.expires_in = self.lifetime
         old_code.redirect_uri = self.redirect_uri
 
+        old_code.save() # Create PK to allow access to M2M fields.
         old_scopes = []
-        for scope in self.scopes:
-          old_scope, _ = oldmodels.Scope.objects.get_or_create(name=scope.name)
+        for scope in self.scopes.all():
+          try:
+            old_scope = oldmodels.Scope.objects.get(name=scope.name)
+          except oldmodels.Scope.DoesNotExist:
+            old_scope = oldmodels.Scope(name=scope.name)
           old_scope.description = new_scope.description
           old_scope.save()
           old_scopes.append(old_scope)
         old_code.scopes = old_scopes
-
         old_code.save()
     return super(AuthorizationCode, self).save(*args, **kwargs)
 
   def delete(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       for old_code in oldmodels.AuthorizationCode.objects.filter(
           value=self.value):
         old_code.delete()
@@ -206,11 +222,14 @@ class AccessToken(models.Model):
 
   def save(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       if self.invalidated:
         oldmodels.AccessToken.objects.filter(value=self.value).delete()
       else:
-        old_token, _ = oldmodels.AccessToken.objects.get_or_create(
-            value=self.value)
+        try:
+          old_token = oldmodels.AccessToken.objects.get(value=self.value)
+        except oldmodels.AccessToken.DoesNotExist:
+          old_token = oldmodels.AccessToken(value=self.value)
         old_token.user = self.user
         # Create the old version of the client if it does not exist.
         self.client.save()
@@ -218,22 +237,27 @@ class AccessToken(models.Model):
         old_token.date_created = self.date_created
         old_token.refresh_token = self.refresh_token
         old_token.expires_in = self.lifetime
-        old_token.scopes
+        old_token.refreshable = self.refreshable
 
+        old_token.save() # Create PK to allow access to M2M fields.
         old_scopes = []
-        for scope in self.scopes:
-          # Create the old version of the scope if it does not exist.
-          scope.save()
-          old_scope = oldmodels.Scope.objects.get(name=scope.name)
+        for scope in self.scopes.all():
+          try:
+            old_scope = oldmodels.Scope.objects.get(name=scope.name)
+          except oldmodels.Scope.DoesNotExist:
+            old_scope = oldmodels.Scope(name=scope.name)
+          old_scope.description = new_scope.description
+          old_scope.save()
           old_scopes.append(old_scope)
         old_token.scopes = old_scopes
-        old_token.refreshable = self.refreshable
+        old_token.save()
 
         old_token.save()
     return super(AccessToken, self).save(*args, **kwargs)
 
   def delete(self, *args, **kwargs):
     if kwargs.pop('propagate_changes', False):
+      from oauth2lib import models as oldmodels
       for old_token in oldmodels.AccessToken.objects.filter(value=self.value):
         old_token.delete()
     return super(AccessToken, self).delete(*args, **kwargs)
