@@ -8,7 +8,7 @@ Welcome!
 
 Test coverage:
 
-.. code-block::
+.. code-block:: bash
 
     Name                     Stmts   Miss Branch BrMiss  Cover
     ----------------------------------------------------------

@@ -15,7 +15,7 @@ Django! Please check out `the full documentation`_!
 
 Test coverage:
 
-.. code::
+.. code-block:: bash
 
     Name                     Stmts   Miss Branch BrMiss  Cover
     ----------------------------------------------------------
