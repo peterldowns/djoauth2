@@ -8,7 +8,7 @@ Welcome!
 
 Test coverage:
 
-.. code::
+.. code-block::
 
     Name                     Stmts   Miss Branch BrMiss  Cover
     ----------------------------------------------------------
