@@ -31,16 +31,18 @@ class AccessTokenAuthenticator(object):
 
     For example, to restrict access to a given endpoint:
 
-        >>> def foo_bar_resource(request, *args, **kwargs):
-        >>>   authenticator = AccessTokenAuthenticator(
-        >>>       required_scope_names=('foo', 'bar'))
-        >>>
-        >>>   access_token, error_args = authenticator.validate(request)
-        >>>   if not access_token:
-        >>>     return authenticator.make_error_response(*error_args)
-        >>>
-        >>>   # ... can now return use access_token
-        >>>
+    .. code-block:: python
+
+        def foo_bar_resource(request, *args, **kwargs):
+          authenticator = AccessTokenAuthenticator(
+              required_scope_names=('foo', 'bar'))
+
+          access_token, error_args = authenticator.validate(request)
+          if not access_token:
+            return authenticator.make_error_response(*error_args)
+
+          # ... can now return use access_token
+
 
     :rtype: When the request validates successfully, returns a
         a tuple of (:py:class:`djoauth2.models.AccessToken`, ``None``).  If the

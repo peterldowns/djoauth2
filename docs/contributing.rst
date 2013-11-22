@@ -19,7 +19,7 @@ Now that you have a copy, copy the "SSH clone URL" from the right-most column:
 
 and run the following commands from a local terminal:
 
-.. code:: bash
+.. code-block:: bash
 
   cd ~
 
@@ -40,7 +40,7 @@ Making changes
 --------------
 First, check out a new branch locally:
 
-.. code:: bash
+.. code-block:: bash
 
   git checkout -b 'my-feature-branch'
 
@@ -52,7 +52,7 @@ guide:
 * All indents are spaces, not tabs.
 * Wrap lines at 80 characters.
 
-.. code:: bash
+.. code-block:: bash
 
   vim djoauth2/...
   vim djoauth2/tests/...
@@ -63,7 +63,7 @@ Schema Migrations
 If your changes touched the ``models.py`` file, you must attempt to generate a
 `South migration`_ in case the schema has changed.
 
-.. code:: bash
+.. code-block:: bash
 
   ./generate_migrations.py
 
@@ -81,7 +81,7 @@ obviate a need for installing and re-installing inside of a test project, we
 provide a script (``runtests.py``) that sets up a minimal Django environment
 To use it, enter your shell and run:
 
-.. code:: bash
+.. code-block:: bash
 
   # Run all of the tests
   ./runtests.py
@@ -104,7 +104,7 @@ summary report in the terminal and also generate an interactive HTML version of
 the report. The interactive version will display the code line-by-line and
 highlight any code that was not covered by the tests.
 
-.. code:: bash
+.. code-block:: bash
 
   # Generate the coverage report
   make coverage
@@ -122,13 +122,13 @@ Updating Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 Made changes that require documentation (hint: probably)? Rebuild the docs:
 
-.. code:: bash
+.. code-block:: bash
 
   make docs
 
 And view them in your browser locally:
 
-.. code:: bash
+.. code-block:: bash
   
   cd docs/_build/html
   python -m SimpleHTTPServer 8080
@@ -145,7 +145,7 @@ Committing
 
 Once your changes are finished (including tests and documentation) it's time to commit them:
 
-.. code:: bash
+.. code-block:: bash
 
   git commit -a -m "Add my new feature."
 
@@ -159,7 +159,7 @@ nice overview here`_.
 
 * Push your changes to your github repository:
 
-.. code:: bash
+.. code-block:: bash
   
   git push origin my-feature-branch
 

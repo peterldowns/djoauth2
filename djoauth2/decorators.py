@@ -10,25 +10,29 @@ def oauth_scope(*scope_names):
 
   For example, to restrict access to a given endpoint like this:
 
-    >>> @require_login
-    >>> def secret_attribute_endpoint(request, *args, **kwargs):
-    >>>   user = request.user
-    >>>   return HttpResponse(json.dumps({
-    >>>       'super_secret_attribute' : user.super_secret_attribute
-    >>>     })
+  .. code-block:: python
+
+      @require_login
+      def secret_attribute_endpoint(request, *args, **kwargs):
+        user = request.user
+        return HttpResponse(json.dumps({
+            'super_secret_attribute' : user.super_secret_attribute
+          })
 
   ...just add the decorator and an additional argument to the function's
   signature:
 
-    >>> @oauth_scope('foo', 'bar')
-    >>> def secret_attribute_endpoint(access_token, request, *args, **kwargs):
-    >>>   # Because of the decorator, the function is guaranteed to only be run
-    >>>   # if the request includes proper access to the 'foo' and 'bar'
-    >>>   # scopes.
-    >>>   user = access_token.user
-    >>>   return HttpResponse(json.dumps({
-    >>>       'super_secret_attribute' : user.super_secret_attribute
-    >>>     })
+  .. code-block:: python
+
+      @oauth_scope('foo', 'bar')
+      def secret_attribute_endpoint(access_token, request, *args, **kwargs):
+        # Because of the decorator, the function is guaranteed to only be run
+        # if the request includes proper access to the 'foo' and 'bar'
+        # scopes.
+        user = access_token.user
+        return HttpResponse(json.dumps({
+            'super_secret_attribute' : user.super_secret_attribute
+          })
 
   The first argument to the wrapped endpoint will now be an
   :py:class:`djoauth2.models.AccessToken` object. The second argument will be

@@ -759,6 +759,43 @@ class TestAuthorizationCodeEndpoint(DJOAuth2TestCase):
       self.assertIn(parameter, parsed_url_parameters)
       self.assertEqual(parsed_url_parameters[parameter], value)
 
+  def test_redirect_uri_query_parameters_unicode_succeeds_encoded_with_utf8(self):
+    self.initialize(scope_names=['verify'])
+
+    auth_code_generator = AuthorizationCodeGenerator(self.missing_redirect_uri)
+
+    make_validation_endpoint(self.dummy_endpoint_uri, auth_code_generator)
+
+    self.oauth_client.login(username=self.user.username, password='password')
+
+    unicode_parameters_dict = {
+        u'user_nåme': u'Peter',
+        u'business_name': u'1500° Restaurant',
+      }
+    byte_parameters_dict = {}
+    for key, value in unicode_parameters_dict.iteritems():
+      byte_parameters_dict[key.encode('utf8')] = value.encode('utf8')
+
+    self.client.redirect_uri = update_parameters('https://locu.com/',
+                                                 unicode_parameters_dict)
+    self.client.save()
+
+    response = self.oauth_client.make_authorization_request(
+        client_id=self.client.key,
+        scope_string=self.oauth_client.scope_string,
+        endpoint=self.dummy_endpoint_uri)
+
+    successful_redirect = auth_code_generator.make_success_redirect()
+
+    # Grab the URL parameters from the redirect response's Location header and
+    # turn them into a dict object.
+    parsed_url_parameters = dict(
+        parse_qsl(urlparse(successful_redirect.get('location')).query))
+
+    for parameter, value in byte_parameters_dict.iteritems():
+      self.assertIn(parameter, parsed_url_parameters)
+      self.assertIn(parsed_url_parameters[parameter], value)
+
   def test_redirect_uri_query_parameters_preserved_on_error(self):
     """ Redirection endpoint URIs MAY include a query component, which MUST be
     retained when adding additional query parameters, such as during the

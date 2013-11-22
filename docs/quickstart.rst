@@ -23,7 +23,7 @@ Installation
 
 1. Install the project with ``pip``:
 
-.. code:: bash
+.. code-block:: bash
 
 	pip install djoauth2
 
@@ -33,7 +33,7 @@ Adding ``djoauth2`` to an existing application
 First, add ``djoauth2`` to the ``INSTALLED_APPS`` list in your project's
 ``settings.py``:
 
-.. code:: python
+.. code-block:: python
 
   INSTALLED_APPS = [
     'django.contrib.auth',
@@ -56,7 +56,7 @@ list of ``INSTALLED_APPS``.
 Optionally, for developing without SSL (**NOT for production code**), add the
 following setting to turn off ``djoauth2``'s SSL-enforcement:
 
-.. code:: python
+.. code-block:: python
 
 	DJOAUTH2_SSL_ONLY = False
 
@@ -66,14 +66,14 @@ OAuth.
 
 Install the models:
 
-.. code:: bash
+.. code-block:: bash
 
   python manage.py syncdb
   python manage.py migrate djoauth2
 
 Run the tests — they should all pass!
 
-.. code:: bash
+.. code-block:: bash
 
 	python manage.py test djoauth2
 
@@ -86,7 +86,7 @@ endpoints.  For the purposes of this demo we're going to call it
 
 Here's what the ``urls.py`` file from our project should look like:
 
-.. code:: python
+.. code-block:: python
 
   # coding: utf-8
   from django.conf.urls import patterns, include, url
@@ -124,7 +124,7 @@ As you can see, it references an endpoint defined by ``djoauth2`` (the
 application. The ``oauth2server`` application only exists to define those
 two views — here's what the ``views.py`` file should look like:
 
-.. code:: python
+.. code-block:: python
 
   # coding: utf-8
   from django.shortcuts import render
@@ -182,7 +182,7 @@ note that it is important to include the ``{{form}}`` context —
 ``djoauth2`` may use this to hold information across authorization requests.
 Currently, the ``user_action`` values must be ``"Accept"`` and ``"Decline"``.
 
-.. code:: html+django
+.. code-block:: html+django
 
   {% if client.image_url %}
     <img src="{{client.image_url}}">
@@ -213,7 +213,7 @@ API views.
 
 The ``api/views.py`` file:
 
-.. code:: python
+.. code-block:: python
 
   # coding: utf-8
   import json
@@ -251,7 +251,7 @@ documentation.)
 
 With our code all set up, we're ready to set up the DB and start the webserver:
 
-.. code:: bash
+.. code-block:: bash
 
   python manage.py syncdb
   python manage.py migrate
@@ -276,7 +276,7 @@ and `check it out`_!
 The first step is to grant our client authorization. Open a browser and visit
 the following URL:
 
-.. code::
+.. code-block:: bash
 
   http://localhost:8080/oauth2/authorization/?
     scope={the name of the scope you created}&
@@ -296,7 +296,7 @@ created by the server.
 We must now exchange this code for an access token. We do this by making a
 ``POST`` request like so:
 
-.. code::
+.. code-block:: bash
 
   POST http://localhost:8080/oauth2/token/ HTTP/1.1
   Authorization: Basic {b64encode(client_id + ':' + client_secret)}
@@ -308,7 +308,7 @@ granted the authorization code that we just received. The value should be the
 result of joining the client ID, a ``:``, and the client secret, and encoding
 the resulting string with base 64. In Python, this might look like:
 
-.. code:: python
+.. code-block:: python
 
   import requests
   from base64 import b64encode
@@ -328,7 +328,7 @@ This will return a JSON dictionary with the access token, access token
 lifetime, and (if available) a refresh token. Continuing the example from
 above:
 
-.. code:: python
+.. code-block:: python
 
   import json
 
@@ -340,7 +340,7 @@ above:
 With this access token, we can now make API requests on behalf of the user who
 granted us access! Again, continuing from above:
 
-.. code:: python
+.. code-block:: python
 
   api_response = requests.post(
     'http://localhost:8080/api/user_info/',
@@ -361,7 +361,7 @@ requests. Once it has expired, any API request will return an ``HTTP 401
 Unauthorized``. At that point, if you have a refresh token, you can exchange it
 for a new access token like so:
 
-.. code:: python
+.. code-block:: python
 
   token_response = requests.post(
     'http://localhost:8080/oauth2/token/',

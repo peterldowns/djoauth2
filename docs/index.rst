@@ -6,28 +6,6 @@ Welcome!
 .. image:: https://travis-ci.org/Locu/djoauth2.png
     :target: https://travis-ci.org/Locu/djoauth2
 
-Test coverage:
-
-.. code::
-
-    Name                     Stmts   Miss Branch BrMiss  Cover
-    ----------------------------------------------------------
-    djoauth2/__init__            1      0      0      0   100%
-    djoauth2/access_token       67      2     24      3    95%
-    djoauth2/authorization     123      4     45      4    95%
-    djoauth2/conf               16      0      0      0   100%
-    djoauth2/decorators         12      0      2      0   100%
-    djoauth2/errors              5      0      0      0   100%
-    djoauth2/helpers            23      0      8      2    94%
-    djoauth2/models             77     10     10      2    86%
-    djoauth2/signals             2      0      0      0   100%
-    djoauth2/views             139      2     53      1    98%
-    ----------------------------------------------------------
-    TOTAL                      465     18    142     12    95%
-
-
-Contents:
-
 .. toctree::
     :maxdepth: 4
 

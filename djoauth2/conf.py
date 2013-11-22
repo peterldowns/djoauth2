@@ -14,7 +14,7 @@ class DJOAuth2Conf(AppConf):
 
   .. code:: python
 
-    settings.DJOAUTH2_SETTING_NAME = <Value>
+      settings.DJOAUTH2_SETTING_NAME = <Value>
 
   That said, in order to maintain the highest level of security and to avoid
   breaking the specification's rules or recommendations, we **strongly
