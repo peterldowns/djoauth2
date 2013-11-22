@@ -10,10 +10,10 @@ clean:
 	- find . -type f -name "*.pyc" -delete
 
 tests: clean
-	./runtests.py
+	./manage.py test djoauth2
 
 coverage: clean
-	coverage run ./runtests.py
+	coverage run ./manage.py test djoauth2
 	coverage html
 	coverage report
 
