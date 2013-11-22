@@ -7,7 +7,7 @@ The ``djoauth2`` Code
 .. autoclass:: djoauth2.access_token.AccessTokenAuthenticator
     :members:
     :undoc-members:
-.. autoclass:: djoauth2.access_token.AuthenticationException
+.. autoclass:: djoauth2.access_token.AuthenticationError
 
 
 :mod:`authorization` Module
@@ -16,7 +16,7 @@ The ``djoauth2`` Code
     :members:
     :undoc-members:
 .. autofunction:: djoauth2.authorization.make_authorization_endpoint
-.. autoclass:: djoauth2.authorization.AuthorizationException
+.. autoclass:: djoauth2.authorization.AuthorizationError
 
 
 :mod:`conf` Module
@@ -33,9 +33,9 @@ The ``djoauth2`` Code
     :undoc-members:
 
 
-:mod:`exceptions` Module
+:mod:`errors` Module
 ------------------------
-.. automodule:: djoauth2.exceptions
+.. automodule:: djoauth2.errors
     :members:
     :undoc-members:
 
