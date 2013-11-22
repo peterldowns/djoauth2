@@ -47,22 +47,44 @@ def make_client_key(length):
   return lambda: random_string(length, CLIENT_KEY_CHARSET)
 
 
-def update_parameters(url, parameters):
+def update_parameters(url, parameters, encoding='utf8'):
   """ Updates a URL's existing GET parameters.
 
-  @url: a URL string.
-  @parameters: a dictionary of parameters, {string:string}.
+  :param url: a base URL to which to add additional parameters.
+  :param parameters: a dictionary of parameters, any mix of
+    unicode and string objects as the parameters and the values.
+  :parameter encoding: the byte encoding to use when passed unicode
+    for the base URL or for keys and values of the parameters dict. This
+    isnecessary because `urllib.urlencode` calls the `str()` function on all of
+    its inputs.  This raises a `UnicodeDecodeError` when it encounters a
+    unicode string with characters outside of the default ASCII charset.
+  :rtype: a string URL.
   """
+  # Convert  the base URL to the default encoding.
+  if isinstance(url, unicode):
+    url = url.encode(encoding)
+
   parsed_url = urlparse.urlparse(url)
   existing_query_parameters = urlparse.parse_qsl(parsed_url.query)
-  # Read http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
-  # if this is confusing.
+
+  # Convert unicode parameters to the default encoding.
+  byte_parameters = []
+  for key, value in (existing_query_parameters + parameters.items()):
+    if isinstance(key, unicode):
+      key = key.encode(encoding)
+    if isinstance(value, unicode):
+      value = value.encode(encoding)
+    byte_parameters.append((key, value))
+
+  # Generate the final URL with all of the updated parameters. Read
+  # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse if this is
+  # confusing.
   return urlparse.urlunparse((
       parsed_url.scheme,
       parsed_url.netloc,
       parsed_url.path,
       parsed_url.params,
-      urlencode(existing_query_parameters + parameters.items()),
+      urlencode(byte_parameters),
       parsed_url.fragment
     ))
 
