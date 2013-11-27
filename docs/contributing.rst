@@ -78,30 +78,21 @@ Testing
 ~~~~~~~
 DJOAuth2 is a standalone Django application, which can be hard to test. To
 obviate a need for installing and re-installing inside of a test project, we
-provide a bootstrap `manage.py` script for testing.
-To run the tests, enter your shell and run:
+provide a script (``runtests.py``) that sets up a minimal Django environment
+To use it, enter your shell and run:
 
 .. code-block:: bash
 
   # Run all of the tests
-  ./manage.py test djoauth2
+  ./runtests.py
   # or
   make tests
 
   # Run a group of tests
-  ./manage.py test djoauth2.tests.TestAuthorizationCodeEndpoint
+  ./runtests.py djoauth2.tests.TestAuthorizationCodeEndpoint
 
   # Run an individual test
-  ./manage.py test djoauth2.tests.TestAuthorizationCodeEndpoint.test_get_requests_succeed
-
-The `manage.py` file works just like ``the standard manage.py file`` that exists in most
-Django applications. It uses the same settings as our tests and allows for easy access
-to an interactive shell for exploring the code
-
-.. code-block:: bash
-
-  # Open an interactive interpreter within a Django environment
-  ./manage.py shell
+  ./runtests.py djoauth2.tests.TestAuthorizationCodeEndpoint.test_get_requests_succeed
 
 Coverage
 ~~~~~~~~
