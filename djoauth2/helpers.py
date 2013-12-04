@@ -28,7 +28,8 @@ CLIENT_SECRET_CHARSET = ascii_letters + digits + '-._~'
 
 
 def random_string(length, charset):
-  return ''.join(random.sample(charset, length))
+  rand = random.SystemRandom()
+  return ''.join(rand.choice(charset) for i in xrange(length))
 
 
 def make_bearer_token(length):
