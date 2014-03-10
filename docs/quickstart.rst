@@ -11,12 +11,12 @@ Requirements
 
 DJOAuth2 has been tested and developed with the following:
 
-* Python 2.7.2
+* Python 2.7
 * Django 1.4+
 * `Django AppConf`_ 0.6
 
 DJOAuth2 uses `South`_ for migrations. For the Django 1.4.X series we support
-South version 0.7.6; for Django 1.5.X we support South version 0.8.2.
+South version 0.7.6; for Django 1.5.X and 1.6.X we support South version 0.8.4.
 
 Installation
 ------------
