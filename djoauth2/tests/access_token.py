@@ -602,7 +602,8 @@ class TestRequestAccessTokenFromRefreshToken(DJOAuth2TestCase):
     def invalidated_refresh_token_use_callback(signal,
                                                sender,
                                                access_token,
-                                               request):
+                                               request,
+                                               **kwargs):
       self.assertEqual(access_token.pk, access_token.pk)
       self.assertIsInstance(request, HttpRequest)
       self.received_signal = True
