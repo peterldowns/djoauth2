@@ -2,7 +2,6 @@
 from datetime import datetime
 from datetime import timedelta
 
-from django.contrib.auth.models import User
 from django.db import models
 from django.utils.timezone import now
 
@@ -12,9 +11,10 @@ from djoauth2.helpers import make_bearer_token
 from djoauth2.helpers import make_client_key
 from djoauth2.helpers import make_client_secret
 
+auth_user_model = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 class Client(models.Model):
-  user = models.ForeignKey(User)
+  user = models.ForeignKey(auth_user_model)
   name = models.CharField(max_length=256)
   description = models.TextField(null=True, blank=True)
   image_url = models.URLField(null=True, blank=True)
@@ -24,13 +24,13 @@ class Client(models.Model):
     default=make_client_key(settings.DJOAUTH2_CLIENT_KEY_LENGTH),
     max_length=settings.DJOAUTH2_CLIENT_KEY_LENGTH,
     unique=True,
-  )
+    )
   secret = models.CharField(
     db_index=True,
     default=make_client_secret(settings.DJOAUTH2_CLIENT_SECRET_LENGTH),
     max_length=settings.DJOAUTH2_CLIENT_SECRET_LENGTH,
     unique=True,
-  )
+    )
 
   def __unicode__(self):
     return unicode(self.name)
@@ -52,7 +52,7 @@ class Scope(models.Model):
 
 class AuthorizationCode(models.Model):
   client = models.ForeignKey(Client)
-  user = models.ForeignKey(User)
+  user = models.ForeignKey(auth_user_model)
   date_created = models.DateTimeField(auto_now_add=True)
   lifetime = models.PositiveIntegerField(
       default=lambda: settings.DJOAUTH2_AUTHORIZATION_CODE_LIFETIME)
@@ -108,7 +108,7 @@ class AccessToken(models.Model):
     unique=True,
   )
   scopes = models.ManyToManyField(Scope, related_name='access_tokens')
-  user = models.ForeignKey(User)
+  user = models.ForeignKey(auth_user_model)
   value = models.CharField(
     db_index=True,
     default=make_bearer_token(settings.DJOAUTH2_ACCESS_TOKEN_LENGTH),
