@@ -6,6 +6,7 @@ Welcome!
 .. image:: https://travis-ci.org/Locu/djoauth2.png?branch=master
     :target: https://travis-ci.org/Locu/djoauth2
 
+
 .. toctree::
     :maxdepth: 4
 

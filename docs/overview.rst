@@ -1,3 +1,12 @@
+Important Links
+---------------
+
+* Source code: https://github.com/locu/djoauth2
+* Documentation: http://djoauth2.readthedocs.org/
+* Issue tracker: https://github.com/locu/djoauth2/issues
+* Mailing list: https://groups.google.com/forum/#!forum/djoauth2
+
+
 What is DJOAuth2?
 -----------------
 
@@ -24,10 +33,6 @@ problems:
 * Acting as an authentication server, allowing other sites to "Log in with
   <your app>".
 
-The `OAuth website`_ describes OAuth 2.0 as
-
-  An open protocol to allow secure authorization in a simple and standard
-  method from web, mobile and desktop applications.
 
 Why use DJOAuth2?
 -----------------
@@ -37,13 +42,13 @@ Greenfield (better known as pydanny) criticizing the dearth of high-quality,
 open-source OAuth 2.0 provider implementations in Python. The article contains
 a wishlist of features for any OAuth implementation:
 
-	• Near turnkey solution
-	• Working code (duplicates above bullet but I'm making a point)
-	• Working tutorials
-	• Documentation
-	• Commented code
-	• Linted code
-	• Test coverage > 80%
+	* Near turnkey solution
+	* Working code (duplicates above bullet but I'm making a point)
+	* Working tutorials
+	* Documentation
+	* Commented code
+	* Linted code
+	* Test coverage > 80%
 
 This project aims to meet all of these goals, and in particular strives to be:
 
@@ -57,6 +62,7 @@ This project aims to meet all of these goals, and in particular strives to be:
 * Well-documented and commented, in order to make it easy to understand how the
   implementation complies with the specification.
 * Well-tested (see the coverage details on the first page of these docs!)
+
 
 What is implemented?
 --------------------
@@ -141,11 +147,11 @@ In addition, we only support `Bearer tokens`_ in an effort to make interacting
 with the implementation as simple as possible for clients. This means no
 fiddling with MAC-signing or hashing!
 
-.. _OAuth 2: http://tools.ietf.org/html/rfc6749
-.. _OAuth website: http://oauth.net/
-.. _an article: http://pydanny.com/the-sorry-state-of-python-oauth-providers.html
-.. _Egor Homakov: http://homakov.blogspot.com/
-.. _types of clients: http://tools.ietf.org/html/rfc6749#section-2.1
-.. _security considerations: http://tools.ietf.org/html/rfc6749#section-10
-.. _Bearer tokens: http://tools.ietf.org/html/rfc6750
+.. _`OAuth 2`: http://tools.ietf.org/html/rfc6749
+.. _`OAuth website`: http://oauth.net/
+.. _`an article`: http://pydanny.com/the-sorry-state-of-python-oauth-providers.html
+.. _`Egor Homakov`: http://homakov.blogspot.com/
+.. _`types of clients`: http://tools.ietf.org/html/rfc6749#section-2.1
+.. _`security considerations`: http://tools.ietf.org/html/rfc6749#section-10
+.. _`Bearer tokens`: http://tools.ietf.org/html/rfc6750
 

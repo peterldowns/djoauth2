@@ -386,7 +386,7 @@ access tokens. If your access token expires and you have lost the refresh token
 value, the refresh request fails, or you were never issued a refresh token,
 then you must begin again by redirecting the user to the authorization page.
   
-.. _Django AppConf: https://github.com/jezdez/django-appconf
-.. _South: http://south.aeracode.org/
-.. _a finished example: https://github.com/Locu/djoauth2/tree/master/example
-.. _check it out: https://github.com/Locu/djoauth2/blob/master/example/client_demo.py
+.. _`Django AppConf`: https://github.com/jezdez/django-appconf
+.. _`South`: http://south.aeracode.org/
+.. _`a finished example`: https://github.com/Locu/djoauth2/tree/master/example
+.. _`check it out`: https://github.com/Locu/djoauth2/blob/master/example/client_demo.py
