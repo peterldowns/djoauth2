@@ -2,7 +2,6 @@
 from datetime import datetime
 from datetime import timedelta
 
-from django.contrib.auth.models import User
 from django.db import models
 from django.utils.timezone import now
 
@@ -14,7 +13,7 @@ from djoauth2.helpers import make_client_secret
 
 
 class Client(models.Model):
-  user = models.ForeignKey(User)
+  user = models.ForeignKey(settings.AUTH_USER_MODEL)
   name = models.CharField(max_length=256)
   description = models.TextField(null=True, blank=True)
   image_url = models.URLField(null=True, blank=True)
@@ -52,7 +51,7 @@ class Scope(models.Model):
 
 class AuthorizationCode(models.Model):
   client = models.ForeignKey(Client)
-  user = models.ForeignKey(User)
+  user = models.ForeignKey(settings.AUTH_USER_MODEL)
   date_created = models.DateTimeField(auto_now_add=True)
   lifetime = models.PositiveIntegerField(
       default=lambda: settings.DJOAUTH2_AUTHORIZATION_CODE_LIFETIME)
@@ -108,7 +107,7 @@ class AccessToken(models.Model):
     unique=True,
   )
   scopes = models.ManyToManyField(Scope, related_name='access_tokens')
-  user = models.ForeignKey(User)
+  user = models.ForeignKey(settings.AUTH_USER_MODEL)
   value = models.CharField(
     db_index=True,
     default=make_bearer_token(settings.DJOAUTH2_ACCESS_TOKEN_LENGTH),
