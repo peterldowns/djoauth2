@@ -7,6 +7,11 @@ DJOAuth2
 .. image:: https://travis-ci.org/Locu/djoauth2.png?branch=master
     :target: https://travis-ci.org/Locu/djoauth2
 
+* Source code: https://github.com/locu/djoauth2
+* Documentation: http://djoauth2.readthedocs.org/
+* Issue tracker: https://github.com/locu/djoauth2/issues
+* Mailing list: https://groups.google.com/forum/#!forum/djoauth2
+
 What is DJOAuth2?
 -----------------
 
@@ -33,14 +38,15 @@ problems:
 * Acting as an authentication server, allowing other sites to "Log in with
   <your app>".
 
+Contributing
+------------
 
-Important Links
----------------
-* Source code: https://github.com/locu/djoauth2
-* Documentation: http://djoauth2.readthedocs.org/
-* Issue tracker: https://github.com/locu/djoauth2/issues
-* Mailing list: https://groups.google.com/forum/#!forum/djoauth2
+Interested in contributing? Great! Check out `the contribution guide`_, which
+includes instructions for setting up dependencies, generating migrations, and
+running the test suite.
 
 
 .. _`OAuth 2`: http://tools.ietf.org/html/rfc6749
 .. _`OAuth website`: http://oauth.net/
+.. _`the contribution guide`: http://djoauth2.readthedocs.org/en/latest/contributing.html
+

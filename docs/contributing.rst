@@ -27,6 +27,16 @@ and run the following commands from a local terminal:
   git clone git@github.com:<YOUR_USER_NAME>/djoauth2.git
   cd djoauth2
 
+
+Install dependencies
+--------------------
+
+We rely on `virtualenv_` for managing dependencies in order to make it as easy
+as possible to start contributing.  Before contributing, run the following
+commands:
+
+.. code-block:: bash
+
   # Install development dependencies inside a new virtualenv
   make dev-env
 
@@ -34,19 +44,16 @@ and run the following commands from a local terminal:
   # were installed.
   . dev-env/bin/activate
 
-Now you're ready to contribute!
-
 Making changes
 --------------
-First, check out a new branch locally:
+After setting up your virtualenv, check out a new branch locally:
 
 .. code-block:: bash
 
   git checkout -b 'my-feature-branch'
 
-
-Make your changes. Don't forget to update the tests! Please follow our style
-guide:
+Now make your changes. Don't forget to update the tests! Please follow our
+style guide:
 
 * 2-space indents
 * All indents are spaces, not tabs.
@@ -63,6 +70,17 @@ Schema Migrations
 If your changes touched the ``models.py`` file, you must attempt to generate a
 `South migration`_ in case the schema has changed.
 
+It's important that for backwards-compatibility reasons you use South version
+0.7.6 and Django 1.4.3 to generate migration files. After entering the ``dev-env`` virtualenv,
+run the following commands:
+
+.. code-block:: bash
+
+  pip install Django==1.4.3
+  pip install South==0.7.6
+
+Then, generate the migrations with the included script:
+
 .. code-block:: bash
 
   ./generate_migrations.py
@@ -70,9 +88,6 @@ If your changes touched the ``models.py`` file, you must attempt to generate a
   # Now, test to see that they apply without an error.
   ./generate_migrations.py --test-migrations
 
-It's important that for backwards-compatibility reasons you use South version 0.7.6
-to generate migration files. This is the version included in the `dev-env` built
-by the `make dev-env` command.
 
 Testing
 ~~~~~~~
@@ -177,6 +192,6 @@ nice overview here`_.
 
 .. image:: _static/img/step_6_send_pull_request.png
 
-
 .. _`Github has a nice overview here`: https://help.github.com/articles/fork-a-repo
+.. _`virtualenv`_: http://docs.python-guide.org/en/latest/dev/virtualenvs/
 .. _`South migration`: http://south.readthedocs.org/en/latest/whataremigrations.html#what-are-migrations
