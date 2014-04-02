@@ -4,6 +4,22 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+try:
+    from django.contrib.auth import get_user_model
+except ImportError:
+    from django.contrib.auth.models import User
+else:
+    User = get_user_model()
+
+# With the default User model these will be 'auth.User' and 'auth.user'
+# so instead of using orm['auth.User'] we can use orm[user_orm_label]
+user_orm_label = '%s.%s' % (
+    User._meta.app_label, User._meta.object_name)
+user_model_label = '%s.%s' % (
+    User._meta.app_label, User._meta.module_name)
+# Shamelessly borrowed from:
+# http://kevindias.com/writing/django-custom-user-models-south-and-reusable-apps/
+
 
 class Migration(SchemaMigration):
 
@@ -11,7 +27,7 @@ class Migration(SchemaMigration):
         # Adding model 'Client'
         db.create_table('djoauth2_client', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm[user_orm_label])),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=256)),
             ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('image_url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True)),
@@ -33,7 +49,7 @@ class Migration(SchemaMigration):
         db.create_table('djoauth2_authorizationcode', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['djoauth2.Client'])),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm[user_orm_label])),
             ('date_created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('lifetime', self.gf('django.db.models.fields.PositiveIntegerField')(default=600)),
             ('invalidated', self.gf('django.db.models.fields.BooleanField')(default=False)),
@@ -60,7 +76,7 @@ class Migration(SchemaMigration):
             ('authorization_code', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='access_tokens', null=True, to=orm['djoauth2.AuthorizationCode'])),
             ('refreshable', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('refresh_token', self.gf('django.db.models.fields.CharField')(null=True, default='EsmhYxg1bfXI20zJ93FvBSriu5UH4j', max_length=30, blank=True, unique=True, db_index=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm[user_orm_label])),
             ('value', self.gf('django.db.models.fields.CharField')(default='CnK9NrzHYOV5_E0Xe8WmGjSkv3q4Mi', unique=True, max_length=30, db_index=True)),
         ))
         db.send_create_signal('djoauth2', ['AccessToken'])
@@ -92,7 +108,6 @@ class Migration(SchemaMigration):
 
         # Removing M2M table for field scopes on 'AccessToken'
         db.delete_table('djoauth2_accesstoken_scopes')
-
 
     models = {
         'auth.group': {
@@ -142,7 +157,7 @@ class Migration(SchemaMigration):
             'refresh_token': ('django.db.models.fields.CharField', [], {'null': 'True', 'default': "'dypx1aPg9hQtv7b8R43kn6cqV~EFHN'", 'max_length': '30', 'blank': 'True', 'unique': 'True', 'db_index': 'True'}),
             'refreshable': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'scopes': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'access_tokens'", 'symmetrical': 'False', 'to': "orm['djoauth2.Scope']"}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm[user_orm_label]"}),
             'value': ('django.db.models.fields.CharField', [], {'default': "'mB9DAWsItGpFOC~T6af1o4geiR7lHK'", 'unique': 'True', 'max_length': '30', 'db_index': 'True'})
         },
         'djoauth2.authorizationcode': {
@@ -154,7 +169,7 @@ class Migration(SchemaMigration):
             'lifetime': ('django.db.models.fields.PositiveIntegerField', [], {'default': '600'}),
             'redirect_uri': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
             'scopes': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'authorization_codes'", 'symmetrical': 'False', 'to': "orm['djoauth2.Scope']"}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm[user_orm_label]"}),
             'value': ('django.db.models.fields.CharField', [], {'default': "'TfOsDkoZr.ley9NzYPuX~IEAQc4aK1'", 'unique': 'True', 'max_length': '30', 'db_index': 'True'})
         },
         'djoauth2.client': {
@@ -166,7 +181,7 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'redirect_uri': ('django.db.models.fields.URLField', [], {'max_length': '200'}),
             'secret': ('django.db.models.fields.CharField', [], {'default': "'SARM5tag_qQunmovi-VJHs2Nz3GdbO'", 'unique': 'True', 'max_length': '30', 'db_index': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"})
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm[user_orm_label]"})
         },
         'djoauth2.scope': {
             'Meta': {'object_name': 'Scope'},
