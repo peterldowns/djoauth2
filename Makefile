@@ -4,7 +4,7 @@
 dev-env: dev-env/bin/activate
 dev-env/bin/activate: dev_requirements.txt clean
 	test -d dev-env || virtualenv dev-env
-	. dev-env/bin/activate; pip install -Ur requirements.txt
+	. dev-env/bin/activate; pip install -Ur dev_requirements.txt
 
 clean:
 	- find . -type f -name "*.pyc" -delete
