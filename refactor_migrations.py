@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# coding: utf-8
 """Refactor South migrations to use settings.AUTH_USER_MODEL.
 Inserts a backwards-compatible code-snippet in all
 your schema migration files and uses a possibly customized user
@@ -18,6 +19,12 @@ https://github.com/fusionbox/mezzanine/commit/a9ea14719ad70ef2c92b26162eb3ae9028
 Stackexchange Q&A:
 http://stackoverflow.com/questions/15472704/trouble-migrating-reusable-django-app-models-to-use-a-custom-user-model
 
+Local modifications:
+  * Made executable by adding hashbang to the top
+  * Moved the refactoring logic into a separate function so that it can be
+    called from other projects.
+  * Updated styling to match this project's style guide.
+
 Usage:
   custom_user_auth_south_refactor.py <migration-dir>
   custom_user_auth_south_refactor.py (-h | --help)
@@ -32,7 +39,8 @@ from docopt import docopt
 import os
 import re
 
-RE_CLASS_NAME = re.compile(r'^()^(class\s+Migration\s*\(\s*(SchemaMigration|DataMigration)\s*\)\s*:)',
+RE_CLASS_NAME = re.compile(
+    r'^()^(class\s+Migration\s*\(\s*(SchemaMigration|DataMigration)\s*\)\s*:)',
     re.MULTILINE)
 
 INSERT_AT_TOP_OF_MIGRATION = """try:
@@ -62,37 +70,44 @@ RE_AUTH_PTR_FIELD_TO = "user_ptr_name\\1"
 RE_ORM_BASES = re.compile(r"u?'_ormbases':\s*\[u?'auth.User'\]")
 RE_ORM_BASES_TO = r"'_ormbases': [user_orm_label]"
 
-RE_META_STRING = re.compile(r"u?'Meta':\s*\{\s*u?'object_name'\s*:\s*u?'User'\s*\}")
-RE_META_TO = "'Meta': {'object_name': User.__name__, 'db_table': \"'%s'\" % User._meta.db_table}"
+RE_META_STRING = re.compile(
+    r"u?'Meta':\s*\{\s*u?'object_name'\s*:\s*u?'User'\s*\}")
+RE_META_TO = ("'Meta': {'object_name': User.__name__, 'db_table': "
+              "\"'%s'\" % User._meta.db_table}")
 
 RE_TEST_OK = re.compile(r"'auth.User'", re.IGNORECASE)
 
 RE_MIGRATION_FNAME = re.compile(r"^(\d{4}).+py$")
 
+def refactor(migration_dir):
+  for fname in os.listdir(migration_dir):
+    if not RE_MIGRATION_FNAME.search(fname):
+      continue
+    full_path = os.path.join(migration_dir, fname)
+    f = open(full_path, 'r')
+    contents = f.read()
+    f.close()
+    if (RE_FK_LABEL.search(contents) or
+        RE_META_STRING.search(contents) or
+        RE_AUTH_MODEL.search(contents) or
+        RE_FK_LABEL.search(contents)):
+      print "Refactoring {0}".format(fname)
+      f = open(full_path, 'w')
+      contents = RE_CLASS_NAME.sub(INSERT_AT_TOP_OF_MIGRATION + r"\2",
+          contents)
+      contents = RE_AUTH_PTR_FIELD.sub(RE_AUTH_PTR_FIELD_TO, contents)
+      contents = RE_AUTH_MODEL.sub(RE_AUTH_MODEL_TO, contents)
+      contents = RE_META_STRING.sub(RE_META_TO, contents)
+      contents = RE_FK_BACKWARDS.sub(RE_FK_BACKWARDS_TO, contents)
+      contents = RE_ORM_BASES.sub(RE_ORM_BASES_TO, contents)
+      contents = RE_FK_LABEL.sub(RE_FK_LABEL_TO, contents)
+      f.write(contents)
+      f.close()
+    else:
+      print "Skipping {0}".format(fname)
+    if RE_TEST_OK.search(contents):
+      print "    WARNING! Still found occurrences of auth.User. Fix manually!"
+
 if __name__ == '__main__':
-    arguments = docopt(__doc__, version='1.0')
-    migration_dir = arguments['<migration-dir>']
-    for fname in os.listdir(migration_dir):
-        if not RE_MIGRATION_FNAME.search(fname):
-            continue
-        full_path = os.path.join(migration_dir, fname)
-        f = open(full_path, 'r')
-        contents = f.read()
-        f.close()
-        if RE_FK_LABEL.search(contents) or RE_META_STRING.search(contents) or RE_AUTH_MODEL.search(contents) or RE_FK_LABEL.search(contents):
-            print "Refactoring {0}".format(fname)
-            f = open(full_path, 'w')
-            contents = RE_CLASS_NAME.sub(INSERT_AT_TOP_OF_MIGRATION + r"\2",
-                contents)
-            contents = RE_AUTH_PTR_FIELD.sub(RE_AUTH_PTR_FIELD_TO, contents)
-            contents = RE_AUTH_MODEL.sub(RE_AUTH_MODEL_TO, contents)
-            contents = RE_META_STRING.sub(RE_META_TO, contents)
-            contents = RE_FK_BACKWARDS.sub(RE_FK_BACKWARDS_TO, contents)
-            contents = RE_ORM_BASES.sub(RE_ORM_BASES_TO, contents)
-            contents = RE_FK_LABEL.sub(RE_FK_LABEL_TO, contents)
-            f.write(contents)
-            f.close()
-        else:
-            print "Skipping {0}".format(fname)
-        if RE_TEST_OK.search(contents):
-            print "    WARNING! Still found occurrences of auth.User. Fix manually!"
+  arguments = docopt(__doc__, version='1.0')
+  migration_dir = arguments['<migration-dir>']
