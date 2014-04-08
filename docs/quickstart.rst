@@ -71,6 +71,11 @@ Install the models:
   python manage.py syncdb
   python manage.py migrate djoauth2
 
+In Django 1.5+, ``djoauth2`` will respect `your custom User model`_ if you have
+one configured (with the `AUTH_USER_MODEL`_ setting.) In Django 1.4, or 1.5+ if
+you're not using a custom User model, the ``djoauth2`` models will link to the
+``django.contrib.auth.models.User`` object.
+
 Run the tests — they should all pass!
 
 .. code-block:: bash
@@ -388,5 +393,6 @@ then you must begin again by redirecting the user to the authorization page.
   
 .. _`Django AppConf`: https://github.com/jezdez/django-appconf
 .. _`South`: http://south.aeracode.org/
+.. _`your configured custom User model`: https://docs.djangoproject.com/en/dev/topics/auth/customizing/#substituting-a-custom-user-model
 .. _`a finished example`: https://github.com/Locu/djoauth2/tree/master/example
 .. _`check it out`: https://github.com/Locu/djoauth2/blob/master/example/client_demo.py
