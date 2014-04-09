@@ -17,6 +17,8 @@ import local_settings
 # missing or badly-configured settings.
 from django.core import management
 
+from refactor_migrations import refactor
+
 
 def generate_migrations(initial):
   management.call_command('syncdb', interactive=False)
@@ -24,6 +26,8 @@ def generate_migrations(initial):
     management.call_command('schemamigration', 'djoauth2', initial=True)
   else:
     management.call_command('schemamigration', 'djoauth2', auto=True)
+  refactor('./djoauth2/migrations/')
+
 
 def test_migrations():
   management.call_command('syncdb', interactive=False)
