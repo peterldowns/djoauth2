@@ -237,7 +237,6 @@ class DJOAuth2TestCase(TestCase):
 
     # Create objects to be used in the tests.
     self.user = User.objects.create(
-        pk=1,
         email='testuser@locu.com',
         first_name='Test',
         last_name='User',
@@ -249,7 +248,6 @@ class DJOAuth2TestCase(TestCase):
     self.user.save()
 
     self.client = Client.objects.create(
-        pk=1,
         key='be6f31235c6118273918c4c70f6768',
         secret='89dcee4e6fe655377a19944c2bee9b',
         name='Client 1',
@@ -257,7 +255,6 @@ class DJOAuth2TestCase(TestCase):
         redirect_uri='https://locu.com',
         user=self.user)
     self.client2 = Client.objects.create(
-        pk=2,
         key='5cf2a7ce5e13ee4dde88717e48fcc6',
         secret='4cf14dc7e7c539047e3d2afb0bdba5',
         name='Client 2',
@@ -266,15 +263,12 @@ class DJOAuth2TestCase(TestCase):
         user=self.user)
 
     Scope.objects.create(
-      pk=1,
       name='autologin',
       description='Log you in automatically')
     Scope.objects.create(
-        pk=2,
         name='verify',
         description='Verify your business on your behalf')
     Scope.objects.create(
-        pk=3,
         name='example',
         description='User your business as an example')
 
