@@ -226,7 +226,7 @@ class DJOAuth2TestClient(TestClient):
 
 
 class DJOAuth2TestCase(TestCase):
-  urls = 'djoauth2.tests.test_urls'
+  urls = 'djoauth2.tests.urls'
   fixtures = (
       'auth_user.json',
       'djoauth2_client.json',
