@@ -237,7 +237,6 @@ class DJOAuth2TestCase(TestCase):
 
     # Create objects to be used in the tests.
     self.user = User.objects.create_user(
-        pk=1,
         email='testuser@locu.com',
         first_name='Test',
         last_name='User',
