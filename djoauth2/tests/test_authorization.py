@@ -22,7 +22,7 @@ from djoauth2.helpers import update_parameters
 from djoauth2.models import Scope
 from djoauth2.models import AuthorizationCode
 from djoauth2.models import Client
-from djoauth2.tests import test_urls
+from djoauth2.tests import urls
 from djoauth2.tests.abstractions import DJOAuth2TestCase
 
 

@@ -226,22 +226,60 @@ class DJOAuth2TestClient(TestClient):
 
 
 class DJOAuth2TestCase(TestCase):
-  urls = 'djoauth2.tests.test_urls'
-  fixtures = (
-      'auth_user.json',
-      'djoauth2_client.json',
-      'djoauth2_scope.json'
-    )
+  urls = 'djoauth2.tests.urls'
 
   def setUp(self):
+    # Use all of the default settings for testing, regardless of what is
+    # currently set.
     for key, value in DJOAuth2Conf._meta.defaults.iteritems():
       setattr(settings, key, value)
       assert getattr(settings, key) == value
 
+    # Create objects to be used in the tests.
+    self.user = User.objects.create(
+        pk=1,
+        email='testuser@locu.com',
+        first_name='Test',
+        last_name='User',
+        password='password',
+        username='testuser@locu.com')
+    # Calling `set_password` stores a hashed version of the password in a hash
+    # format that will allow authentication to work.
+    self.user.set_password(self.user.password)
+    self.user.save()
+
+    self.client = Client.objects.create(
+        pk=1,
+        key='be6f31235c6118273918c4c70f6768',
+        secret='89dcee4e6fe655377a19944c2bee9b',
+        name='Client 1',
+        description='Client 1',
+        redirect_uri='https://locu.com',
+        user=self.user)
+    self.client2 = Client.objects.create(
+        pk=2,
+        key='5cf2a7ce5e13ee4dde88717e48fcc6',
+        secret='4cf14dc7e7c539047e3d2afb0bdba5',
+        name='Client 2',
+        description='Client 2',
+        redirect_uri='https://locu.com',
+        user=self.user)
+
+    Scope.objects.create(
+      pk=1,
+      name='autologin',
+      description='Log you in automatically')
+    Scope.objects.create(
+        pk=2,
+        name='verify',
+        description='Verify your business on your behalf')
+    Scope.objects.create(
+        pk=3,
+        name='example',
+        description='User your business as an example')
+
+
   def initialize(self, **kwargs):
-    self.user = User.objects.get(pk=1)
-    self.client = Client.objects.get(pk=1)
-    self.client2 = Client.objects.get(pk=2)
     self.oauth_client = DJOAuth2TestClient(**kwargs)
 
   def create_authorization_code(self, user, client, custom=None):

@@ -29,7 +29,7 @@ if not settings.configured and not os.environ.get('DJANGO_SETTINGS_MODULE'):
       TEMPLATE_DIRS=(
           os.path.join(SITE_ROOT, 'djoauth2/tests/templates'),
         ),
-      ROOT_URLCONF='djoauth2.tests.test_urls',
+      ROOT_URLCONF='djoauth2.tests.urls',
       FIXTURE_DIRS=(
           os.path.join(SITE_ROOT, 'djoauth2/tests/fixtures'),
         ),

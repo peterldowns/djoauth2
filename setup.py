@@ -8,8 +8,6 @@ REQUIREMENTS = [
     line.strip() for line in open(os.path.join(os.path.dirname(__file__),
                                                'requirements.txt')).readlines()]
 
-os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
-
 setup(
     name='djoauth2',
     version=djoauth2.__version__,
