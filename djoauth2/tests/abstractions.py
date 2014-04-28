@@ -236,12 +236,18 @@ class DJOAuth2TestCase(TestCase):
       assert getattr(settings, key) == value
 
     # Create objects to be used in the tests.
-    self.user = User.objects.create_user(
+    self.user = User.objects.create(
+        pk=1,
         email='testuser@locu.com',
         first_name='Test',
         last_name='User',
         password='password',
         username='testuser@locu.com')
+    # Calling `set_password` stores a hashed version of the password in a hash
+    # format that will allow authentication to work.
+    self.user.set_password(self.user.password)
+    self.user.save()
+
     self.client = Client.objects.create(
         pk=1,
         key='be6f31235c6118273918c4c70f6768',
