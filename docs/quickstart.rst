@@ -393,6 +393,7 @@ then you must begin again by redirecting the user to the authorization page.
   
 .. _`Django AppConf`: https://github.com/jezdez/django-appconf
 .. _`South`: http://south.aeracode.org/
-.. _`your configured custom User model`: https://docs.djangoproject.com/en/dev/topics/auth/customizing/#substituting-a-custom-user-model
+.. _`your custom User model`: https://docs.djangoproject.com/en/dev/topics/auth/customizing/#substituting-a-custom-user-model
+.. _`AUTH_USER_MODEL`: https://docs.djangoproject.com/en/1.6/topics/auth/customizing/#auth-custom-user
 .. _`a finished example`: https://github.com/Locu/djoauth2/tree/master/example
 .. _`check it out`: https://github.com/Locu/djoauth2/blob/master/example/client_demo.py
