@@ -8,11 +8,18 @@ Steps to get started:
 
   pip install -r requirements.txt
 
-2. Set up database and install fixtures:
+2. Set up the database:
 
 .. code:: bash
 
-  ./manage.py syncdb
+  ./manage.py syncdb --no-initial-data
+
+Create a new superuser when prompted to do so – use the username
+``exampleuser`` and the password ``password``. Then, install the ``djoauth2``
+models:
+
+.. code:: bash
+
   ./manage.py migrate djoauth2
 
 
