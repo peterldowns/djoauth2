@@ -31,7 +31,7 @@ and run the following commands from a local terminal:
 Install dependencies
 --------------------
 
-We rely on `virtualenv_` for managing dependencies in order to make it as easy
+We rely on `virtualenv`_ for managing dependencies in order to make it as easy
 as possible to start contributing.  Before contributing, run the following
 commands:
 
@@ -193,5 +193,5 @@ nice overview here`_.
 .. image:: _static/img/step_6_send_pull_request.png
 
 .. _`Github has a nice overview here`: https://help.github.com/articles/fork-a-repo
-.. _`virtualenv`_: http://docs.python-guide.org/en/latest/dev/virtualenvs/
+.. _`virtualenv`: http://docs.python-guide.org/en/latest/dev/virtualenvs/
 .. _`South migration`: http://south.readthedocs.org/en/latest/whataremigrations.html#what-are-migrations
